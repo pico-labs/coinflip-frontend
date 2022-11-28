@@ -1,5 +1,3 @@
-// https://raw.githubusercontent.com/es92/zkApp-examples/main/04-zkapp-browser-ui/ui/pages/zkappWorker.ts
-
 import {
   Mina,
   isReady,

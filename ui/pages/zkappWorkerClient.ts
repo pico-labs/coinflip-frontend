@@ -1,4 +1,3 @@
-// https://raw.githubusercontent.com/es92/zkApp-examples/main/04-zkapp-browser-ui/ui/pages/zkappWorkerClient.ts
 import {
   fetchAccount,
   PublicKey,
@@ -19,10 +18,6 @@ export default class ZkappWorkerClient {
   setActiveInstanceToBerkeley() {
     return this._call('setActiveInstanceToBerkeley', {});
   }
-
-  // setActiveInstanceToLocal() {
-  //   return this._call('setActiveInstanceToLocal', {});
-  // }
 
   loadContract() {
     return this._call('loadContract', {});
