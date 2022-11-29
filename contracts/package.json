@@ -21,7 +21,8 @@
     "test": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads node_modules/jest/bin/jest.js",
     "testw": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads node_modules/jest/bin/jest.js --watch",
     "lint": "npx eslint src/* --fix",
-    "interact": "npm run build && node build/src/interact.js"
+    "interact": "npm run build && node build/src/interact.js",
+    "interact-local": "npm run build && node build/src/interact-local.js"
   },
   "lint-staged": {
     "**/*": [
