@@ -12,50 +12,68 @@
  * Build the project: `$ npm run build`
  * Run with node:     `$ node build/src/interact.js <network>`.
  */
-import { Mina, PrivateKey, shutdown } from 'snarkyjs';
-import fs from 'fs/promises';
+import * as dotenv from 'dotenv';
+
+import {
+  Mina,
+  PrivateKey,
+  PublicKey,
+  shutdown,
+  isReady,
+  fetchAccount,
+} from 'snarkyjs';
 import { Add } from './Add.js';
 
-// check command line arg
-let network = process.argv[2];
-if (!network)
-  throw Error(`Missing <network> argument.
-
-Usage:
-node build/src/interact.js <network>
-
-Example:
-node build/src/interact.js berkeley
-`);
+dotenv.config();
 Error.stackTraceLimit = 1000;
 
-// parse config and private key from file
-type Config = { networks: Record<string, { url: string; keyPath: string }> };
-let configJson: Config = JSON.parse(await fs.readFile('config.json', 'utf8'));
-let config = configJson.networks[network];
-let key: { privateKey: string } = JSON.parse(
-  await fs.readFile(config.keyPath, 'utf8')
-);
-let zkAppKey = PrivateKey.fromBase58(key.privateKey);
+const BERKELEY_ADDRESS =
+  'B62qrDe16LotjQhPRMwG12xZ8Yf5ES8ehNzZ25toJV28tE9FmeGq23A';
 
-// set up Mina instance and contract we interact with
-const Network = Mina.Network(config.url);
-Mina.setActiveInstance(Network);
-let zkAppAddress = zkAppKey.toPublicKey();
+await isReady;
+
+const Berkeley = Mina.BerkeleyQANet(
+  'https://proxy.berkeley.minaexplorer.com/graphql'
+);
+Mina.setActiveInstance(Berkeley);
+
+let zkAppAddress = PublicKey.fromBase58(BERKELEY_ADDRESS);
 let zkApp = new Add(zkAppAddress);
+
+const devPrivateKey: string | undefined = process.env.DEV_PRIVATE_KEY;
+if (!devPrivateKey) {
+  throw new Error('DEV_PRIVATE_KEY is not defined');
+}
+let feePayerKey = PrivateKey.fromBase58(devPrivateKey);
+
+let response = await fetchAccount({ publicKey: zkAppAddress });
+if (response.error) {
+  throw Error(response.error.statusText);
+} else {
+  const { nonce, balance, publicKey } = response.account;
+  console.log(
+    `Interacting with contract with nonce: ${nonce}, balance: ${balance}, publicKey: ${publicKey.toBase58()}`
+  );
+}
 
 // compile the contract to create prover keys
 console.log('compile the contract...');
 await Add.compile();
 
-// call update() and send transaction
-console.log('build transaction and create proof...');
-let tx = await Mina.transaction({ feePayerKey: zkAppKey, fee: 0.1e9 }, () => {
+const transactionFee = 100_000_000;
+console.log('build transaction and update...');
+let tx = await Mina.transaction({ feePayerKey, fee: transactionFee }, () => {
   zkApp.update();
 });
+
+console.log('proving...');
 await tx.prove();
+
+console.log(tx.toGraphqlQuery());
 console.log('send transaction...');
 let sentTx = await tx.send();
+
+await sentTx.wait();
 
 if (sentTx.hash() !== undefined) {
   console.log(`
