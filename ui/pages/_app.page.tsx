@@ -10,8 +10,6 @@ import {
   Field,
 } from 'snarkyjs'
 
-let transactionFee = 0.1;
-
 export interface AppState {
   zkappWorkerClient: null | ZkappWorkerClient,
   hasWallet: null | boolean,
@@ -81,6 +79,7 @@ export default function App() {
     console.log('sending a transaction...');
 
     await state.zkappWorkerClient!.fetchAccount({ publicKey: state.publicKey! });
+    await state.zkappWorkerClient!.fetchAccount({ publicKey: state.zkappPublicKey! });
 
     await state.zkappWorkerClient!.createUpdateTransaction();
 
@@ -89,13 +88,14 @@ export default function App() {
 
     console.log('getting Transaction JSON...');
     const transactionJSON = await state.zkappWorkerClient!.getTransactionJSON()
+    console.info(`transaction JSON: ${transactionJSON}`);
 
     console.log('requesting send transaction...');
     const { hash } = await (window as any).mina.sendTransaction({
       transaction: transactionJSON,
       feePayer: {
-        fee: transactionFee,
-        memo: '',
+        fee: 1,
+        memo: 'sending-from-frontend',
       },
     });
 

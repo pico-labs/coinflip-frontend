@@ -1,6 +1,7 @@
 import {Field, PublicKey} from 'snarkyjs';
 import {AppState} from '../pages/_app.page';
 import ZkappWorkerClient from '../pages/zkappWorkerClient';
+import {networkConfig} from './constants';
 
 // interface SetupBerkeleyState {
 //   zkappWorkerClient: ZkappWorkerClient,
@@ -31,7 +32,7 @@ async function setupBerkeley(workerClient: ZkappWorkerClient, currentAppState: A
   await workerClient.compileContract();
   console.log('zkApp compiled');
 
-  const zkappPublicKey = PublicKey.fromBase58('B62qph2VodgSo5NKn9gZta5BHNxppgZMDUihf1g7mXreL4uPJFXDGDA');
+  const zkappPublicKey = PublicKey.fromBase58(networkConfig.Berkeley.addContract.publicKey);
 
   await workerClient.initZkappInstance(zkappPublicKey);
 
