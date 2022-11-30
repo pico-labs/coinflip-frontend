@@ -29,12 +29,12 @@ console.log('compiling...');
 await Add.compile();
 
 console.log('fetching account');
-const localAccount = Local.getAccount(localPublicKey);
+const localAccount = Mina.getAccount(localPublicKey);
 console.log(
   `Local account with pub key: ${localPublicKey.toBase58()} has balance: ${localAccount.balance.toString()}`
 );
 
-let tx = await Local.transaction(localPrivateKey, () => {
+let tx = await Mina.transaction(localPrivateKey, () => {
   AccountUpdate.fundNewAccount(localPrivateKey);
   zkAppInstance.deploy({ zkappKey: zkAppPrivateKey });
   zkAppInstance.init();
@@ -50,7 +50,7 @@ if (sentTx.hash() !== undefined) {
 const initialNumState = new Add(zkAppAddress).num.get();
 
 console.log(`Now, updating account...`);
-let updateTx = await Local.transaction(localPrivateKey, () => {
+let updateTx = await Mina.transaction(localPrivateKey, () => {
   zkAppInstance.update();
 });
 
