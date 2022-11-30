@@ -1,7 +1,8 @@
 import '../styles/globals.css'
 import { useEffect, useState } from "react";
 import './reactCOIServiceWorker';
-import {setupBerkeley} from '../utils/setup';
+import {SUPPORTED_NETWORKS} from '../utils/constants';
+import {setupNetwork} from '../utils/setup';
 
 import ZkappWorkerClient from './zkappWorkerClient';
 
@@ -20,6 +21,9 @@ export interface AppState {
   zkappPublicKey: PublicKey | null,
   creatingTransaction: boolean
 }
+
+// const NETWORK = 'BERKELEY';
+const NETWORK = 'LOCAL';
 
 export default function App() {
   let [state, setState] = useState<AppState>({
@@ -47,7 +51,7 @@ export default function App() {
           setState({ ...state, hasWallet: false });
           return;
         } else {
-          const setupState = await setupBerkeley(zkappWorkerClient, state, mina);
+          const setupState = await setupNetwork(NETWORK, mina, zkappWorkerClient, state);
           setState({...setupState});
         }
       }
@@ -75,13 +79,20 @@ export default function App() {
   // Send a transaction
 
   const onSendTransaction = async () => {
+    console.log(`method name: onSendTransaction`);
     setState({ ...state, creatingTransaction: true });
     console.log('sending a transaction...');
 
     await state.zkappWorkerClient!.fetchAccount({ publicKey: state.publicKey! });
     await state.zkappWorkerClient!.fetchAccount({ publicKey: state.zkappPublicKey! });
 
-    await state.zkappWorkerClient!.createUpdateTransaction();
+    if (NETWORK === SUPPORTED_NETWORKS.BERKELEY) {
+      await state.zkappWorkerClient!.createUpdateTransaction();
+    } else if (NETWORK === SUPPORTED_NETWORKS.LOCAL) {
+      const localPrivateKey = await state.zkappWorkerClient!.getLocalPrivateKey();
+      await state.zkappWorkerClient?.createLocalUpdateTransaction(localPrivateKey);
+    }
+
 
     console.log('creating proof...');
     await state.zkappWorkerClient!.proveUpdateTransaction();
@@ -91,17 +102,22 @@ export default function App() {
     console.info(`transaction JSON: ${transactionJSON}`);
 
     console.log('requesting send transaction...');
-    const { hash } = await (window as any).mina.sendTransaction({
-      transaction: transactionJSON,
-      feePayer: {
-        fee: 1,
-        memo: 'sending-from-frontend',
-      },
-    });
 
-    console.log(
-      'See transaction at https://berkeley.minaexplorer.com/transaction/' + hash
-    );
+    if (NETWORK === SUPPORTED_NETWORKS.BERKELEY) {
+      const { hash } = await (window as any).mina.sendTransaction({
+        transaction: transactionJSON,
+        feePayer: {
+          fee: 1,
+          memo: 'sending-from-frontend',
+        },
+      });
+      console.log(
+        'See transaction at https://berkeley.minaexplorer.com/transaction/' + hash
+      );
+    } else if (NETWORK === SUPPORTED_NETWORKS.LOCAL) {
+      const res = await state.zkappWorkerClient?.sendLocalTransaction();
+      console.info(`sent local transaction with hash: ${res}`);
+    }
 
     setState({ ...state, creatingTransaction: false });
   }

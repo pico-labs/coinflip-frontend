@@ -4,6 +4,7 @@ import {
   PrivateKey,
   Field,
 } from 'snarkyjs'
+import {assertIsString} from '../utils/shared-functions';
 
 import type { ZkappWorkerRequest, ZkappWorkerReponse, WorkerFunctions } from './zkappWorker';
 
@@ -17,6 +18,19 @@ export default class ZkappWorkerClient {
 
   setActiveInstanceToBerkeley() {
     return this._call('setActiveInstanceToBerkeley', {});
+  }
+  setActiveInstanceToLocal() {
+    return this._call('setActiveInstanceToLocal', {});
+  }
+  async getLocalPrivateKey(): Promise<PrivateKey> {
+    const privateKey58 = await this._call('getLocalPrivateKey', {});
+    assertIsString(privateKey58);
+    return PrivateKey.fromBase58(privateKey58);
+  }
+  async getLocalAppPrivateKey(): Promise<PrivateKey> {
+    const privateKey58 = await this._call('getLocalAppPrivateKey', {});
+    assertIsString(privateKey58);
+    return PrivateKey.fromBase58(privateKey58);
   }
 
   loadContract() {
@@ -34,6 +48,22 @@ export default class ZkappWorkerClient {
 
   initZkappInstance(publicKey: PublicKey) {
     return this._call('initZkappInstance', { publicKey58: publicKey.toBase58() });
+  }
+
+  initLocalZkappInstance(userPrivateKey: PrivateKey, appPrivateKey: PrivateKey) {
+    const args = {userPrivateKey58: userPrivateKey.toBase58(), appPrivateKey58: appPrivateKey.toBase58()}
+    return this._call('initLocalZkappInstance', args);
+  }
+
+  createLocalUpdateTransaction(userPrivateKey: PrivateKey) {
+    const args = {userPrivateKey58: userPrivateKey.toBase58()}
+    return this._call('createLocalUpdateTransaction', args);
+  }
+
+  async sendLocalTransaction(): Promise<string> {
+    const result = await this._call('sendLocalTransaction', {});
+    assertIsString(result);
+    return result
   }
 
   async getNum(): Promise<Field> {

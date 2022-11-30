@@ -7,5 +7,9 @@ const networkConfig = {
   }
 }
 
+const SUPPORTED_NETWORKS = {
+  BERKELEY: 'BERKELEY',
+  LOCAL: 'LOCAL'
+}
 
-export { networkConfig };
+export { networkConfig, SUPPORTED_NETWORKS };
