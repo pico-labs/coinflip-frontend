@@ -20,12 +20,16 @@
     "prepare": "cd .. && husky install contracts/.husky",
     "test": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads node_modules/jest/bin/jest.js",
     "testw": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads node_modules/jest/bin/jest.js --watch",
-    "lint": "npx eslint src/* --fix"
+    "lint": "npx eslint src/* --fix",
+    "interact": "npm run build && node build/src/interact.js",
+    "interact-local": "npm run build && node build/src/interact-local.js"
   },
   "lint-staged": {
     "**/*": [
-      "eslint src/* --fix",
       "prettier --write --ignore-unknown"
+    ],
+    "src/*.{js,ts,tsx}": [
+      "eslint src/* --fix"
     ]
   },
   "devDependencies": {
@@ -34,6 +38,7 @@
     "@types/jest": "^27.0.3",
     "@typescript-eslint/eslint-plugin": "^5.5.0",
     "@typescript-eslint/parser": "^5.5.0",
+    "dotenv": "^16.0.3",
     "eslint": "^8.7.0",
     "eslint-plugin-snarkyjs": "^0.1.0",
     "husky": "^7.0.1",
