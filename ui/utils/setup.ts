@@ -1,19 +1,8 @@
-import {Field, PublicKey} from 'snarkyjs';
+import {PublicKey} from 'snarkyjs';
 import {AppState} from '../pages/_app.page';
 import ZkappWorkerClient from '../pages/zkappWorkerClient';
 import {networkConfig} from './constants';
 
-// interface SetupBerkeleyState {
-//   zkappWorkerClient: ZkappWorkerClient,
-//   hasWallet: boolean,
-//   hasBeenSetup: boolean,
-//   publicKey: PublicKey,
-//   zkappPublicKey: PublicKey,
-//   accountExists: boolean,
-//   currentNum: Field
-// }
-
-// TODO: JB
 async function setupBerkeley(workerClient: ZkappWorkerClient, currentAppState: AppState, mina: any): Promise<AppState> {
   await workerClient.setActiveInstanceToBerkeley();
 
