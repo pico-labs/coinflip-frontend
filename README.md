@@ -29,6 +29,16 @@ npm run interact
 
 ### ui
 
+The best option is to use the Makefile:
+
+```
+# Build contract deps along with the ui, and run the ui
+make ui
+# CTRL+C when done
+# make clean if you need to refresh the build
+```
+
+Else:
 ```
 # Building + Running
 cd ui
