@@ -2,9 +2,7 @@ import {
   Mina,
   isReady,
   PublicKey,
-  PrivateKey,
-  Field,
-  fetchAccount,
+  fetchAccount, PrivateKey, AccountUpdate,
 } from 'snarkyjs'
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
@@ -13,59 +11,144 @@ type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
 import type { Add } from '../../contracts/src/Add';
 
-const state = {
+type TestAccount = {publicKey: PublicKey, privateKey: PrivateKey};
+
+interface State {
+  Add:  typeof Add | null;
+  zkapp:  Add | null
+  transaction: Transaction | null;
+  isLocal: boolean;
+  testAccounts: Array<TestAccount> | null;
+  localAppPrivateKey: PrivateKey | null;
+}
+
+const state: State = {
   Add: null as null | typeof Add,
   zkapp: null as null | Add,
   transaction: null as null | Transaction,
-}
+  isLocal: false,
+  testAccounts: null,
+  localAppPrivateKey: null
+};
 
 // ---------------------------------------------------------------------------------------
 
 const functions = {
-  loadSnarkyJS: async (args: {}) => {
+  loadSnarkyJS: async (_args: {}) => {
     await isReady;
   },
-  setActiveInstanceToBerkeley: async (args: {}) => {
+  setActiveInstanceToBerkeley: async (_args: {}) => {
     const Berkeley = Mina.BerkeleyQANet(
       "https://proxy.berkeley.minaexplorer.com/graphql"
     );
     Mina.setActiveInstance(Berkeley);
   },
-  loadContract: async (args: {}) => {
+  setActiveInstanceToLocal: async (_args: {}) => {
+    const Local = Mina.LocalBlockchain();
+    Mina.setActiveInstance(Local);
+    state.testAccounts = Local.testAccounts;
+    state.isLocal = true;
+    state.localAppPrivateKey = PrivateKey.random();
+  },
+  loadContract: async (_args: {}) => {
     const { Add } = await import('../../contracts/build/src/Add.js');
+    assertsIsSpecifiedContract<Add>(Add, 'Add');
     state.Add = Add;
   },
-  compileContract: async (args: {}) => {
-    await state.Add!.compile();
+  compileContract: async (_args: {}) => {
+    assertsIsSpecifiedContract<Add>(state.Add, 'Add');
+    await state.Add.compile();
   },
   fetchAccount: async (args: { publicKey58: string }) => {
-    const publicKey = PublicKey.fromBase58(args.publicKey58);
-    return await fetchAccount({ publicKey });
+    if (state.isLocal) {
+      console.info(`get account with key: ${args.publicKey58}`);
+      const publicKey = PublicKey.fromBase58(args.publicKey58);
+      return Mina.getAccount(publicKey);
+    } else {
+      const publicKey = PublicKey.fromBase58(args.publicKey58);
+      return await fetchAccount({ publicKey });
+    }
   },
   initZkappInstance: async (args: { publicKey58: string }) => {
+    assertsIsSpecifiedContract<Add>(state.Add, 'Add');
     const publicKey = PublicKey.fromBase58(args.publicKey58);
-    state.zkapp = new state.Add!(publicKey);
+    state.zkapp = new state.Add(publicKey);
   },
-  getNum: async (args: {}) => {
+  initLocalZkappInstance: async (args: {userPrivateKey58: string, appPrivateKey58: string}) => {
+    assertsIsSpecifiedContract<Add>(state.Add, 'Add');
+    const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
+    const appPrivateKey = PrivateKey.fromBase58(args.appPrivateKey58);
+
+    const instance = new state.Add(PublicKey.fromPrivateKey(appPrivateKey));
+    let tx = await Mina.transaction(userPrivateKey, () => {
+      AccountUpdate.fundNewAccount(userPrivateKey);
+      instance.deploy({zkappKey: appPrivateKey});
+      instance.init();
+    });
+    state.zkapp = instance;
+
+    const sentTx = await tx.send();
+    await sentTx.wait();
+
+    if (sentTx.hash() !== undefined) {
+      console.debug(`DEV - Success! account funded, deployed, initialized`);
+    }
+  },
+  getNum: async (_args: {}) => {
     const currentNum = await state.zkapp!.num.get();
     return JSON.stringify(currentNum.toJSON());
   },
-  createUpdateTransaction: async (args: {}) => {
+  createUpdateTransaction: async (_args: {}) => {
     const transaction = await Mina.transaction(() => {
         state.zkapp!.update();
       }
     );
     state.transaction = transaction;
   },
-  proveUpdateTransaction: async (args: {}) => {
+
+  createLocalUpdateTransaction: async (args: {userPrivateKey58: string}) => {
+    const feePayerKey = PrivateKey.fromBase58(args.userPrivateKey58);
+    const transaction = await Mina.transaction({ feePayerKey, fee: 100_000_000 }, () => {
+        state.zkapp!.update();
+      }
+    );
+    state.transaction = transaction;
+  },
+  proveUpdateTransaction: async (_args: {}) => {
     await state.transaction!.prove();
   },
-  getTransactionJSON: async (args: {}) => {
+  getTransactionJSON: async (_args: {}) => {
     return state.transaction!.toJSON();
   },
+  getLocalPrivateKey: async (_args: {}) => {
+    return state.testAccounts![0].privateKey.toBase58();
+  },
+  getLocalAppPrivateKey: async (_args: {}) => {
+    if (state.isLocal && state.localAppPrivateKey) {
+      return state.localAppPrivateKey.toBase58();
+    } else {
+      throw 'This operation is only supported on local and with a private key initialized; are you on the right network?';
+    }
+  },
+  sendLocalTransaction: async (_args: {}) => {
+    const res = await Mina.sendTransaction(state.transaction!)
+    return res.hash();
+  }
 };
 
 // ---------------------------------------------------------------------------------------
+
+function assertsIsSpecifiedContract<S>(contract: unknown, expectedName: string): asserts contract is S {
+  if (typeof contract !== 'function') {
+    throw 'contract is not a function';
+  }
+
+  const castContract = contract as {name: string};
+  const namesDiffer = castContract.name !== expectedName;
+  if (!castContract.name || namesDiffer) {
+    throw `Expected contract to have name '${expectedName}' but got '${contract.name}`;
+  }
+}
 
 export type WorkerFunctions = keyof typeof functions;
 
