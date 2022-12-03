@@ -4,8 +4,9 @@ import {
   PublicKey,
   fetchAccount, PrivateKey, AccountUpdate, UInt64,
 } from 'snarkyjs'
-import {Account} from 'snarkyjs/src/lib/fetch';
 
+// TODO: JB 
+type Account = {}
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
 // ---------------------------------------------------------------------------------------
