@@ -13,6 +13,7 @@ interface State {
   zkAppBalance?: string;
   userBalance?: string;
   awaitingDeposit: boolean;
+  awaitingWithdraw: boolean;
 }
 
 export class MainContent extends React.Component<Props, State> {
@@ -21,7 +22,8 @@ export class MainContent extends React.Component<Props, State> {
     this.state = {
       zkAppBalance: undefined,
       userBalance: undefined,
-      awaitingDeposit: false
+      awaitingDeposit: false,
+      awaitingWithdraw: false
     }
   }
 
@@ -54,12 +56,30 @@ export class MainContent extends React.Component<Props, State> {
     }
   }
 
+  private handleWithdraw = async () => {
+    console.log(`method name: handleWithdraw`);
+    const userPrivateKey = await this.props.workerClient.getLocalPrivateKey();
+    this.setState({awaitingWithdraw: true});
+
+    try {
+      // TODO: JB - this does not support multiple balance changes.
+      await this.props.workerClient.localWithdraw(userPrivateKey, 1000);
+      this.refreshBalances()
+    } catch (err) {
+      throw err;
+    } finally {
+      this.setState({awaitingWithdraw: false});
+    }
+
+  }
+
   render() {
-    const {awaitingDeposit} = this.state
+    const {awaitingDeposit, awaitingWithdraw} = this.state
     return (
       <div>
         <button onClick={this.refreshBalances}>Refresh balances</button>
         <button onClick={this.handleDeposit} disabled={awaitingDeposit}>Deposit 1000</button>
+        <button onClick={this.handleWithdraw} disabled={awaitingWithdraw}>Withdraw (what amount???)</button>
         {this.state.zkAppBalance ?
           <Balance balance={this.state.zkAppBalance} label="ZK App Account balance"/> :
           <div>Loading ZK App Balance...</div>

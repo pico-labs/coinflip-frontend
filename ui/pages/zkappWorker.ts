@@ -65,7 +65,7 @@ const functions = {
   },
   setActiveInstanceToLocal: async (_args: {}) => {
     // TODO: JB
-    const Local = Mina.LocalBlockchain({proofsEnabled: true});
+    const Local = Mina.LocalBlockchain({proofsEnabled: false});
     Mina.setActiveInstance(Local);
     state.testAccounts = Local.testAccounts;
     state.isLocal = true;
@@ -181,7 +181,6 @@ const functions = {
   },
   localDeposit: async (args: {depositAmount: number, previousBalance: number, userPrivateKey58: string}) => {
     if (!state.isLocal) { throw 'only supported for local'}
-    console.log(`method name: deposit`);
     const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
     const userPublicKey = PublicKey.fromPrivateKey(userPrivateKey);
     const merkleMap = new MerkleMap();
@@ -205,6 +204,32 @@ const functions = {
     console.debug('DEV - waiting...')
     await sentTx.wait();
     console.debug(`DEV - TX hash: ${sentTx.hash}`);
+  },
+  // TODO: JB - Not sure what is supposed to happen when:
+  // 1. User sends 2000
+  // 2. User sends 3000
+  // 3. User flips coin for 1000
+  // 4. User loses 1000
+  // 5. What amount does the user submit for their withdrawal? It must be (2000 + 3000 - 1000), right? How does the user know how to compute that
+  // amount? Is the coinflip function going to return a value that allows us to compute the differential (e.g. -1000 or +1000) ?
+
+  localWithdraw: async (args: {userPrivateKey58: string, withdrawAmount: number}) => {
+    if (!state.isLocal) { throw 'only local supported'}
+    const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58)
+    const merkleMap = new MerkleMap();
+    const key = Poseidon.hash(userPrivateKey.toPublicKey().toFields());
+    const witness = merkleMap.getWitness(key);
+    const tx3 = await Mina.transaction(userPrivateKey, () => {
+      state.zkapp!.withdraw(
+        userPrivateKey.toPublicKey(),
+        Field(args.withdrawAmount),
+        witness
+      );
+    });
+    console.debug('DEV - proving localWithdraw TX...');
+    await tx3.prove();
+    console.debug('DEV - sending localWithdraw TX')
+    await tx3.send();
   }
 };
 

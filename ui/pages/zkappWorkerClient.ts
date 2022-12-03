@@ -99,6 +99,11 @@ export default class ZkappWorkerClient {
     return result;
   }
 
+  localWithdraw(userPrivateKey: PrivateKey, withdrawAmount: number) {
+    const args = {userPrivateKey58: userPrivateKey.toBase58(), withdrawAmount};
+    return this._call('localWithdraw', args);
+  }
+
   // ---------------------------------------------------------------------------------------
 
   worker: Worker;
