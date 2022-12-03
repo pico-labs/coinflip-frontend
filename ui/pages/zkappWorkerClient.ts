@@ -3,7 +3,7 @@ import {
   PrivateKey,
   Field,
 } from 'snarkyjs'
-import {assertIsFetchResult, assertIsString} from '../utils/shared-functions';
+import {assertIsFetchResult, assertIsString, assertIsStringArray} from '../utils/shared-functions';
 
 import type {
   ZkappWorkerRequest,
@@ -18,6 +18,11 @@ export default class ZkappWorkerClient {
 
   loadSnarkyJS() {
     return this._call('loadSnarkyJS', {});
+  }
+  async loadBalances(publicKeys: Array<PublicKey>): Promise<Array<string>> {
+    const result = await this._call('loadBalances', {publicKeys: publicKeys.map(k => k.toBase58())});
+    assertIsStringArray(result);
+    return result;
   }
 
   setActiveInstanceToBerkeley() {

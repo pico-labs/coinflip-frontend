@@ -2,7 +2,7 @@ import {
   Mina,
   isReady,
   PublicKey,
-  fetchAccount, PrivateKey, AccountUpdate,
+  fetchAccount, PrivateKey, AccountUpdate, UInt64,
 } from 'snarkyjs'
 import {Account} from 'snarkyjs/src/lib/fetch';
 
@@ -80,7 +80,14 @@ const functions = {
     assertsIsSpecifiedContract<Add>(state.Add, 'Add');
     await state.Add.compile();
   },
-  fetchAccount: async (args: { publicKey58: string }): Promise<FetchSuccess | FetchError> => {
+  loadBalances: async (args: {publicKeys: Array<string>}): Promise<Array<string>> => {
+    return args.publicKeys.map(key => {
+      return Mina.getBalance(PublicKey.fromBase58(key)).toString()
+    });
+  },
+
+  // TODO: JB - I dont think this is working as intended.
+  fetchAccount: async (args: { publicKey58: string }): Promise<FetchResult> => {
     if (state.isLocal) {
       console.info(`get account with key: ${args.publicKey58}`);
       const publicKey = PublicKey.fromBase58(args.publicKey58);

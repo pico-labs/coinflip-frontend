@@ -6,6 +6,20 @@ function assertIsString(value: unknown): asserts value is string {
   }
 }
 
+function assertIsStringArray(value: unknown): asserts value is string[] {
+  if (typeof value !== 'object') {
+    throw `expected value: ${value} to have typeof object but got: ${typeof value}`;
+  }
+
+  const castValue = value as Array<string>;
+  if (castValue[0] && (typeof castValue[0]) === 'string') {
+    return;
+  } else {
+    debugger;
+    throw 'Expected array of strings';
+  }
+}
+
 function assertIsFetchResult(value: unknown): asserts value is FetchResult {
   if (typeof value !== 'object') {
     throw 'expected value to be an object';
@@ -27,5 +41,6 @@ function assertIsFetchResult(value: unknown): asserts value is FetchResult {
 
 export {
   assertIsString,
-  assertIsFetchResult
+  assertIsFetchResult,
+  assertIsStringArray
 }

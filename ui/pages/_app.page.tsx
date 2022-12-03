@@ -162,18 +162,15 @@ export default function App() {
     <div>
       { setup }
       { accountDoesNotExist }
-      {state.hasBeenSetup && state.userAccountExists &&
-        <MainContent
-          /* @ts-ignore */
+      {state.hasBeenSetup && state.userAccountExists && state.zkappWorkerClient && state.zkappPublicKey && state.currentNum && state.publicKey
+        && <MainContent
           workerClient={state.zkappWorkerClient}
           onUpdateNumCallback={onRefreshCurrentNum}
-          /* @ts-ignore */
           zkappPublicKey={state.zkappPublicKey}
-          /* TODO:JB */
-          /*  @ts-ignore */
           currentNum={state.currentNum}
           creatingTransaction={state.creatingTransaction}
           onSendTransaction={onSendTransaction}
+          userPublicKey={state.publicKey}
         />
       }
     </div>
