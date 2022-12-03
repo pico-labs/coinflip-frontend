@@ -37,7 +37,7 @@ async function setupAndDeriveState(workerClient: ZkappWorkerClient, currentAppSt
   console.log('checking if user account exists...');
   // TODO: JB -- Right now, a non-existent account in Berkeley returns an error object, whereas for local, it throws.
   const res = await workerClient.fetchAccount({ publicKey: config.userPublicKey });
-  const accountExists = !res.error;
+  const userAccountExists = !res.error;
 
   await workerClient.loadContract();
 
@@ -64,7 +64,7 @@ async function setupAndDeriveState(workerClient: ZkappWorkerClient, currentAppSt
     hasBeenSetup: true,
     publicKey: config.userPublicKey,
     zkappPublicKey: config.zkappPublicKey,
-    accountExists,
+    userAccountExists,
     currentNum
   }
 }

@@ -10,6 +10,7 @@ type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 // ---------------------------------------------------------------------------------------
 
 import type { Add } from '../../contracts/src/Add';
+import type { Executor} from 'coinflip-executor-contract/build/src/executor';
 
 type TestAccount = {publicKey: PublicKey, privateKey: PrivateKey};
 
@@ -52,6 +53,7 @@ const functions = {
   },
   loadContract: async (_args: {}) => {
     const { Add } = await import('../../contracts/build/src/Add.js');
+    const { Executor } =  await import('coinflip-executor-contract/build/src/executor');
     assertsIsSpecifiedContract<Add>(Add, 'Add');
     state.Add = Add;
   },
