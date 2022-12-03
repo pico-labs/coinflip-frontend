@@ -2,10 +2,10 @@ import {
   Mina,
   isReady,
   PublicKey,
-  fetchAccount, PrivateKey, AccountUpdate, UInt64,
+  fetchAccount, PrivateKey, AccountUpdate, UInt64, MerkleMapWitness, Poseidon, MerkleMap, Field,
 } from 'snarkyjs'
 
-// TODO: JB 
+// TODO: JB
 type Account = {}
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
@@ -35,8 +35,8 @@ export interface FetchError {
 }
 
 interface State {
-  Add:  typeof Add | null;
-  zkapp:  Add | null
+  Executor: typeof Executor | null;
+  zkapp:  Executor | null;
   transaction: Transaction | null;
   isLocal: boolean;
   testAccounts: Array<TestAccount> | null;
@@ -44,8 +44,8 @@ interface State {
 }
 
 const state: State = {
-  Add: null as null | typeof Add,
-  zkapp: null as null | Add,
+  Executor: null as null | typeof Executor,
+  zkapp: null as null | Executor,
   transaction: null as null | Transaction,
   isLocal: false,
   testAccounts: null,
@@ -65,21 +65,21 @@ const functions = {
     Mina.setActiveInstance(Berkeley);
   },
   setActiveInstanceToLocal: async (_args: {}) => {
-    const Local = Mina.LocalBlockchain();
+    // TODO: JB
+    const Local = Mina.LocalBlockchain({proofsEnabled: false});
     Mina.setActiveInstance(Local);
     state.testAccounts = Local.testAccounts;
     state.isLocal = true;
     state.localAppPrivateKey = PrivateKey.random();
   },
   loadContract: async (_args: {}) => {
-    const { Add } = await import('../../contracts/build/src/Add.js');
     const { Executor } =  await import('coinflip-executor-contract/build/src/executor');
-    assertsIsSpecifiedContract<Add>(Add, 'Add');
-    state.Add = Add;
+    assertsIsSpecifiedContract<Executor>(Executor, 'Executor');
+    state.Executor = Executor;
   },
   compileContract: async (_args: {}) => {
-    assertsIsSpecifiedContract<Add>(state.Add, 'Add');
-    await state.Add.compile();
+    assertsIsSpecifiedContract<Executor>(state.Executor, 'Executor');
+    await state.Executor.compile();
   },
   loadBalances: async (args: {publicKeys: Array<string>}): Promise<Array<string>> => {
     return args.publicKeys.map(key => {
@@ -108,22 +108,22 @@ const functions = {
     }
   },
   initZkappInstance: async (args: { publicKey58: string }) => {
-    assertsIsSpecifiedContract<Add>(state.Add, 'Add');
+    assertsIsSpecifiedContract<Executor>(state.Executor, 'Executor');
     const publicKey = PublicKey.fromBase58(args.publicKey58);
-    state.zkapp = new state.Add(publicKey);
+    state.zkapp = new state.Executor(publicKey);
   },
   initLocalZkappInstance: async (args: {userPrivateKey58: string, appPrivateKey58: string}) => {
-    assertsIsSpecifiedContract<Add>(state.Add, 'Add');
+    assertsIsSpecifiedContract<Executor>(state.Executor, 'Executor');
     const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
     const appPrivateKey = PrivateKey.fromBase58(args.appPrivateKey58);
 
-    const instance = new state.Add(PublicKey.fromPrivateKey(appPrivateKey));
+    const executorInstance = new state.Executor(PublicKey.fromPrivateKey(appPrivateKey));
     let tx = await Mina.transaction(userPrivateKey, () => {
       AccountUpdate.fundNewAccount(userPrivateKey);
-      instance.deploy({zkappKey: appPrivateKey});
-      instance.init();
+      executorInstance.deploy({zkappKey: appPrivateKey});
+      executorInstance.init();
     });
-    state.zkapp = instance;
+    state.zkapp = executorInstance;
 
     const sentTx = await tx.send();
     await sentTx.wait();
@@ -132,21 +132,29 @@ const functions = {
       console.debug(`DEV - Success! account funded, deployed, initialized`);
     }
   },
+  // TODO: JB
   getNum: async (_args: {}) => {
-    const currentNum = await state.zkapp!.num.get();
-    return JSON.stringify(currentNum.toJSON());
+    // const currentNum = await state.zkapp!.num.get();
+    // return JSON.stringify(currentNum.toJSON());
+    return JSON.stringify(999);
   },
+  // TODO: JB handle for executor state
   createUpdateTransaction: async (_args: {}) => {
     const transaction = await Mina.transaction(() => {
+      // TODO: JB
+      // @ts-ignore
         state.zkapp!.update();
       }
     );
     state.transaction = transaction;
   },
 
+  // TODO: JB - Handle for executor
   createLocalUpdateTransaction: async (args: {userPrivateKey58: string}) => {
     const feePayerKey = PrivateKey.fromBase58(args.userPrivateKey58);
     const transaction = await Mina.transaction({ feePayerKey, fee: 100_000_000 }, () => {
+      // TODO: JB
+      // @ts-ignore
         state.zkapp!.update();
       }
     );
