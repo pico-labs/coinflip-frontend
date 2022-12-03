@@ -1,12 +1,16 @@
 import {
-  fetchAccount,
   PublicKey,
   PrivateKey,
   Field,
 } from 'snarkyjs'
-import {assertIsString} from '../utils/shared-functions';
+import {assertIsFetchResult, assertIsString} from '../utils/shared-functions';
 
-import type { ZkappWorkerRequest, ZkappWorkerReponse, WorkerFunctions } from './zkappWorker';
+import type {
+  ZkappWorkerRequest,
+  ZkappWorkerReponse,
+  WorkerFunctions,
+  FetchResult
+} from './zkappWorker';
 
 export default class ZkappWorkerClient {
 
@@ -41,9 +45,10 @@ export default class ZkappWorkerClient {
     return this._call('compileContract', {});
   }
 
-  fetchAccount({ publicKey }: { publicKey: PublicKey }): ReturnType<typeof fetchAccount> {
-    const result = this._call('fetchAccount', { publicKey58: publicKey.toBase58() });
-    return (result as ReturnType<typeof fetchAccount>);
+  async fetchAccount({ publicKey }: { publicKey: PublicKey }): Promise<FetchResult> {
+    const result = await this._call('fetchAccount', { publicKey58: publicKey.toBase58() });
+    assertIsFetchResult(result);
+    return result;
   }
 
   initZkappInstance(publicKey: PublicKey) {

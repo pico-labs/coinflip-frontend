@@ -4,6 +4,7 @@ import {
   PublicKey,
   fetchAccount, PrivateKey, AccountUpdate,
 } from 'snarkyjs'
+import {Account} from 'snarkyjs/src/lib/fetch';
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
@@ -13,6 +14,24 @@ import type { Add } from '../../contracts/src/Add';
 import type { Executor} from 'coinflip-executor-contract/build/src/executor';
 
 type TestAccount = {publicKey: PublicKey, privateKey: PrivateKey};
+
+
+interface FetchErrorField {
+  statusCode: number;
+  statusText: string
+}
+
+export interface FetchSuccess {
+  account: Account;
+  error: undefined;
+}
+
+export type FetchResult = FetchSuccess | FetchError;
+
+export interface FetchError {
+  account: undefined;
+  error: FetchErrorField
+}
 
 interface State {
   Add:  typeof Add | null;
@@ -61,11 +80,20 @@ const functions = {
     assertsIsSpecifiedContract<Add>(state.Add, 'Add');
     await state.Add.compile();
   },
-  fetchAccount: async (args: { publicKey58: string }) => {
+  fetchAccount: async (args: { publicKey58: string }): Promise<FetchSuccess | FetchError> => {
     if (state.isLocal) {
       console.info(`get account with key: ${args.publicKey58}`);
       const publicKey = PublicKey.fromBase58(args.publicKey58);
-      return Mina.getAccount(publicKey);
+      try {
+        // In local, we have to use getAccount rather than fetchAccount, since there is no GraphQL endpoint locally.
+        // But, that has a different return type than fetchAccount.
+        // Therefore, we munge the output to normalize the return type so downstream consumers
+        // don't have to behave differently depending on the network.
+        const account = Mina.getAccount(publicKey);
+        return {account, error: undefined}
+      } catch (err) {
+        return {account: undefined, error: {statusCode: 9999, statusText: 'Local - could not find account.'}};
+      }
     } else {
       const publicKey = PublicKey.fromBase58(args.publicKey58);
       return await fetchAccount({ publicKey });
