@@ -65,6 +65,11 @@ export default class ZkappWorkerClient {
     return this._call('initLocalZkappInstance', args);
   }
 
+  localDeposit(depositAmount: number, previousBalance: number, userPrivateKey: PrivateKey) {
+    const args = {depositAmount, previousBalance, userPrivateKey58: userPrivateKey.toBase58()};
+    return this._call('localDeposit', args);
+  }
+
   createLocalUpdateTransaction(userPrivateKey: PrivateKey) {
     const args = {userPrivateKey58: userPrivateKey.toBase58()}
     return this._call('createLocalUpdateTransaction', args);

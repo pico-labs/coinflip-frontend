@@ -53,15 +53,6 @@ export default function App() {
           return;
         } else {
           const setupState = await setupNetwork(NETWORK, mina, zkappWorkerClient, state);
-
-          // TODO: JB
-          // @ts-ignore
-          // const balances = await Promise.all([zkappWorkerClient.fetchAccount({publicKey: setupState.publicKey}),
-          //   // TODO: JB
-          //   // @ts-ignore
-          //   zkappWorkerClient.fetchAccount({publicKey: setupState.zkappPublicKey})
-          // ]);
-          // console.log(balances);
           setState({...setupState});
         }
       }
@@ -162,14 +153,11 @@ export default function App() {
     <div>
       { setup }
       { accountDoesNotExist }
-      {state.hasBeenSetup && state.userAccountExists && state.zkappWorkerClient && state.zkappPublicKey && state.currentNum && state.publicKey
+      {state.hasBeenSetup && state.userAccountExists && state.zkappWorkerClient && state.zkappPublicKey && state.publicKey
         && <MainContent
           workerClient={state.zkappWorkerClient}
           onUpdateNumCallback={onRefreshCurrentNum}
           zkappPublicKey={state.zkappPublicKey}
-          currentNum={state.currentNum}
-          creatingTransaction={state.creatingTransaction}
-          onSendTransaction={onSendTransaction}
           userPublicKey={state.publicKey}
         />
       }

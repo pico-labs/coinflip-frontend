@@ -6,15 +6,13 @@ interface Props {
   workerClient: ZkappWorkerClient;
   zkappPublicKey: PublicKey
   onUpdateNumCallback: (num: Field) => void;
-  creatingTransaction: boolean;
-  currentNum: Field;
   userPublicKey: PublicKey
-  onSendTransaction: () => void;
 }
 
 interface State {
   zkAppBalance?: string;
   userBalance?: string;
+  awaitingDeposit: boolean;
 }
 
 export class MainContent extends React.Component<Props, State> {
@@ -22,11 +20,16 @@ export class MainContent extends React.Component<Props, State> {
     super(props);
     this.state = {
       zkAppBalance: undefined,
-      userBalance: undefined
+      userBalance: undefined,
+      awaitingDeposit: false
     }
   }
 
-  public async componentDidMount() {
+  public componentDidMount() {
+    this.refreshBalances();
+  }
+
+  private refreshBalances = async () => {
     const {zkappPublicKey, userPublicKey} = this.props;
     const [zkAppBalance, userBalance] = await this.props.workerClient.loadBalances([zkappPublicKey, userPublicKey])
     this.setState({
@@ -35,25 +38,28 @@ export class MainContent extends React.Component<Props, State> {
     });
   }
 
-  private onRefreshCurrentNum = async () => {
-    console.log('getting zkApp state...');
-    await this.props.workerClient.fetchAccount({ publicKey: this.props.zkappPublicKey })
-    const currentNum = await this.props.workerClient.getNum();
-    console.log('current state:', currentNum.toString());
-    this.props.onUpdateNumCallback(currentNum);
-  }
+  private handleDeposit = async () => {
+    console.log(`method name: handleDeposit`);
+    const localPrivateKey = await this.props.workerClient.getLocalPrivateKey();
+    this.setState({awaitingDeposit: true});
 
-  private onSendTransaction = async () => {
-    this.props.onSendTransaction();
+    try {
+      // TODO: JB - this does not support multiple balance changes.
+      await this.props.workerClient.localDeposit(1000, 0, localPrivateKey);
+      this.refreshBalances()
+    } catch (err) {
+      throw err;
+    } finally {
+      this.setState({awaitingDeposit: false});
+    }
   }
 
   render() {
-    const {creatingTransaction, currentNum} = this.props;
+    const {awaitingDeposit} = this.state
     return (
       <div>
-        <button onClick={this.onSendTransaction} disabled={creatingTransaction}> Send Transaction </button>
-        <div> Current Number in zkApp: { currentNum.toString() } </div>
-        <button onClick={this.onRefreshCurrentNum}> Get Latest State </button>
+        <button onClick={this.refreshBalances}>Refresh balances</button>
+        <button onClick={this.handleDeposit} disabled={awaitingDeposit}>Deposit 1000</button>
         {this.state.zkAppBalance ?
           <Balance balance={this.state.zkAppBalance} label="ZK App Account balance"/> :
           <div>Loading ZK App Balance...</div>

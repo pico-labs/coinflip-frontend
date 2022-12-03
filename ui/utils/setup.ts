@@ -73,6 +73,7 @@ async function generateConfig(network: 'BERKELEY' | 'LOCAL', mina: MinaBrowserCl
   if (network === SUPPORTED_NETWORKS.BERKELEY) {
     const userPublicKeyBase58 = (await mina.requestAccounts())[0];
     const userPublicKey = PublicKey.fromBase58(userPublicKeyBase58);
+    // TODO: JB - NEED TO CHANGE FOR OUR CONTRACT ONCE DEPLOYED.
     const zkappPublicKey = PublicKey.fromBase58(networkConfig.Berkeley.addContract.publicKey);
     return {userPublicKey, zkappPublicKey, isBerkeley: true};
   } else if (network === SUPPORTED_NETWORKS.LOCAL) {

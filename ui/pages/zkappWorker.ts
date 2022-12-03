@@ -11,7 +11,6 @@ type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
 // ---------------------------------------------------------------------------------------
 
-import type { Add } from '../../contracts/src/Add';
 import type { Executor} from 'coinflip-executor-contract/build/src/executor';
 
 type TestAccount = {publicKey: PublicKey, privateKey: PrivateKey};
@@ -66,7 +65,7 @@ const functions = {
   },
   setActiveInstanceToLocal: async (_args: {}) => {
     // TODO: JB
-    const Local = Mina.LocalBlockchain({proofsEnabled: false});
+    const Local = Mina.LocalBlockchain({proofsEnabled: true});
     Mina.setActiveInstance(Local);
     state.testAccounts = Local.testAccounts;
     state.isLocal = true;
@@ -179,6 +178,33 @@ const functions = {
   sendLocalTransaction: async (_args: {}) => {
     const res = await Mina.sendTransaction(state.transaction!)
     return res.hash();
+  },
+  localDeposit: async (args: {depositAmount: number, previousBalance: number, userPrivateKey58: string}) => {
+    if (!state.isLocal) { throw 'only supported for local'}
+    console.log(`method name: deposit`);
+    const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
+    const userPublicKey = PublicKey.fromPrivateKey(userPrivateKey);
+    const merkleMap = new MerkleMap();
+    const key = Poseidon.hash(userPublicKey.toFields());
+    const witness = merkleMap.getWitness(key);
+
+    const tx = await Mina.transaction(userPrivateKey, () => {
+      state.zkapp!.deposit(
+        userPublicKey,
+        Field(args.depositAmount),
+        Field(args.previousBalance),
+        witness
+      );
+    });
+    console.debug('DEV - proving TX...')
+    await tx.prove();
+    console.debug('DEV - signing TX...')
+    tx.sign([userPrivateKey]);
+    console.debug('DEV - sending TX...')
+    const sentTx = await tx.send();
+    console.debug('DEV - waiting...')
+    await sentTx.wait();
+    console.debug(`DEV - TX hash: ${sentTx.hash}`);
   }
 };
 
