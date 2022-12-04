@@ -11,9 +11,9 @@ type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
 // ---------------------------------------------------------------------------------------
 
-import type { Executor} from 'coinflip-executor-contract/build/src/executor';
+import type { Executor } from 'coinflip-executor-contract/build/src/executor';
 
-type TestAccount = {publicKey: PublicKey, privateKey: PrivateKey};
+type TestAccount = { publicKey: PublicKey, privateKey: PrivateKey };
 
 
 interface FetchErrorField {
@@ -35,11 +35,12 @@ export interface FetchError {
 
 interface State {
   Executor: typeof Executor | null;
-  zkapp:  Executor | null;
+  zkapp: Executor | null;
   transaction: Transaction | null;
   isLocal: boolean;
   testAccounts: Array<TestAccount> | null;
   localAppPrivateKey: PrivateKey | null;
+  map: MerkleMap | null;
 }
 
 const state: State = {
@@ -48,7 +49,8 @@ const state: State = {
   transaction: null as null | Transaction,
   isLocal: false,
   testAccounts: null,
-  localAppPrivateKey: null
+  localAppPrivateKey: null,
+  map: null
 };
 
 // ---------------------------------------------------------------------------------------
@@ -65,14 +67,14 @@ const functions = {
   },
   setActiveInstanceToLocal: async (_args: {}) => {
     // TODO: JB
-    const Local = Mina.LocalBlockchain({proofsEnabled: false});
+    const Local = Mina.LocalBlockchain();
     Mina.setActiveInstance(Local);
     state.testAccounts = Local.testAccounts;
     state.isLocal = true;
     state.localAppPrivateKey = PrivateKey.random();
   },
   loadContract: async (_args: {}) => {
-    const { Executor } =  await import('coinflip-executor-contract/build/src/executor');
+    const { Executor } = await import('coinflip-executor-contract/build/src/executor');
     assertsIsSpecifiedContract<Executor>(Executor, 'Executor');
     state.Executor = Executor;
   },
@@ -80,7 +82,7 @@ const functions = {
     assertsIsSpecifiedContract<Executor>(state.Executor, 'Executor');
     await state.Executor.compile();
   },
-  loadBalances: async (args: {publicKeys: Array<string>}): Promise<Array<string>> => {
+  loadBalances: async (args: { publicKeys: Array<string> }): Promise<Array<string>> => {
     return args.publicKeys.map(key => {
       return Mina.getBalance(PublicKey.fromBase58(key)).toString()
     });
@@ -97,9 +99,9 @@ const functions = {
         // Therefore, we munge the output to normalize the return type so downstream consumers
         // don't have to behave differently depending on the network.
         const account = Mina.getAccount(publicKey);
-        return {account, error: undefined}
+        return { account, error: undefined }
       } catch (err) {
-        return {account: undefined, error: {statusCode: 9999, statusText: 'Local - could not find account.'}};
+        return { account: undefined, error: { statusCode: 9999, statusText: 'Local - could not find account.' } };
       }
     } else {
       const publicKey = PublicKey.fromBase58(args.publicKey58);
@@ -110,8 +112,9 @@ const functions = {
     assertsIsSpecifiedContract<Executor>(state.Executor, 'Executor');
     const publicKey = PublicKey.fromBase58(args.publicKey58);
     state.zkapp = new state.Executor(publicKey);
+    state.map = new MerkleMap(); // CD: Note, this is where we would load the persistently-stored map from somewhere else
   },
-  initLocalZkappInstance: async (args: {userPrivateKey58: string, appPrivateKey58: string}) => {
+  initLocalZkappInstance: async (args: { userPrivateKey58: string, appPrivateKey58: string }) => {
     assertsIsSpecifiedContract<Executor>(state.Executor, 'Executor');
     const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
     const appPrivateKey = PrivateKey.fromBase58(args.appPrivateKey58);
@@ -119,13 +122,15 @@ const functions = {
     const executorInstance = new state.Executor(PublicKey.fromPrivateKey(appPrivateKey));
     let tx = await Mina.transaction(userPrivateKey, () => {
       AccountUpdate.fundNewAccount(userPrivateKey);
-      executorInstance.deploy({zkappKey: appPrivateKey});
+      executorInstance.deploy({ zkappKey: appPrivateKey });
       executorInstance.init();
     });
     state.zkapp = executorInstance;
 
     const sentTx = await tx.send();
     await sentTx.wait();
+
+    state.map = new MerkleMap(); // CD: Note, this is where we would load the persistently-stored map from somewhere else
 
     if (sentTx.hash() !== undefined) {
       console.debug(`DEV - Success! account funded, deployed, initialized`);
@@ -142,20 +147,20 @@ const functions = {
     const transaction = await Mina.transaction(() => {
       // TODO: JB
       // @ts-ignore
-        state.zkapp!.update();
-      }
+      state.zkapp!.update();
+    }
     );
     state.transaction = transaction;
   },
 
   // TODO: JB - Handle for executor
-  createLocalUpdateTransaction: async (args: {userPrivateKey58: string}) => {
+  createLocalUpdateTransaction: async (args: { userPrivateKey58: string }) => {
     const feePayerKey = PrivateKey.fromBase58(args.userPrivateKey58);
     const transaction = await Mina.transaction({ feePayerKey, fee: 100_000_000 }, () => {
       // TODO: JB
       // @ts-ignore
-        state.zkapp!.update();
-      }
+      state.zkapp!.update();
+    }
     );
     state.transaction = transaction;
   },
@@ -179,13 +184,12 @@ const functions = {
     const res = await Mina.sendTransaction(state.transaction!)
     return res.hash();
   },
-  localDeposit: async (args: {depositAmount: number, previousBalance: number, userPrivateKey58: string}) => {
-    if (!state.isLocal) { throw 'only supported for local'}
+  localDeposit: async (args: { depositAmount: number, previousBalance: number, userPrivateKey58: string }) => {
+    if (!state.isLocal) { throw 'only supported for local' }
     const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
     const userPublicKey = PublicKey.fromPrivateKey(userPrivateKey);
-    const merkleMap = new MerkleMap();
     const key = Poseidon.hash(userPublicKey.toFields());
-    const witness = merkleMap.getWitness(key);
+    const witness = state.map.getWitness(key);
 
     const tx = await Mina.transaction(userPrivateKey, () => {
       state.zkapp!.deposit(
@@ -204,6 +208,8 @@ const functions = {
     console.debug('DEV - waiting...')
     await sentTx.wait();
     console.debug(`DEV - TX hash: ${sentTx.hash}`);
+
+    state.map.set(key, Field(args.previousBalance + args.depositAmount)); // CD: Note, previous balance probably ought not to come from args, but just be read from the map
   },
   // TODO: JB - Not sure what is supposed to happen when:
   // 1. User sends 2000
@@ -213,12 +219,11 @@ const functions = {
   // 5. What amount does the user submit for their withdrawal? It must be (2000 + 3000 - 1000), right? How does the user know how to compute that
   // amount? Is the coinflip function going to return a value that allows us to compute the differential (e.g. -1000 or +1000) ?
 
-  localWithdraw: async (args: {userPrivateKey58: string, withdrawAmount: number}) => {
-    if (!state.isLocal) { throw 'only local supported'}
+  localWithdraw: async (args: { userPrivateKey58: string, withdrawAmount: number }) => {
+    if (!state.isLocal) { throw 'only local supported' }
     const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58)
-    const merkleMap = new MerkleMap();
     const key = Poseidon.hash(userPrivateKey.toPublicKey().toFields());
-    const witness = merkleMap.getWitness(key);
+    const witness = state.map.getWitness(key);
     const tx3 = await Mina.transaction(userPrivateKey, () => {
       state.zkapp!.withdraw(
         userPrivateKey.toPublicKey(),
@@ -230,6 +235,8 @@ const functions = {
     await tx3.prove();
     console.debug('DEV - sending localWithdraw TX')
     await tx3.send();
+
+    state.map.set(key, Field(0));
   }
 };
 
@@ -240,7 +247,7 @@ function assertsIsSpecifiedContract<S>(contract: unknown, expectedName: string):
     throw 'contract is not a function';
   }
 
-  const castContract = contract as {name: string};
+  const castContract = contract as { name: string };
   const namesDiffer = castContract.name !== expectedName;
   if (!castContract.name || namesDiffer) {
     throw `Expected contract to have name '${expectedName}' but got '${contract.name}`;
