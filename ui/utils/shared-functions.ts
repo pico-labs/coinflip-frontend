@@ -1,3 +1,4 @@
+import {MerkleMap} from 'snarkyjs';
 import {FetchError, FetchResult, FetchSuccess} from '../pages/zkappWorker';
 
 function assertIsString(value: unknown): asserts value is string {
@@ -39,8 +40,20 @@ function assertIsFetchResult(value: unknown): asserts value is FetchResult {
   throw 'Expected to have returned after resolving object to a FetchResult';
 }
 
+function assertIsMerkleMap(value: unknown): asserts value is MerkleMap {
+  if (typeof value !== 'object') {
+    throw 'expected value to be an object';
+  }
+
+  const castAsMap = value as MerkleMap;
+  if (!castAsMap.tree || !castAsMap.getRoot()) {
+    throw 'Expected Map to have properties .tree and .getRoot()';
+  }
+}
+
 export {
   assertIsString,
   assertIsFetchResult,
-  assertIsStringArray
+  assertIsStringArray,
+  assertIsMerkleMap
 }

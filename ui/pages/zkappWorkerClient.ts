@@ -65,8 +65,8 @@ export default class ZkappWorkerClient {
     return this._call('initLocalZkappInstance', args);
   }
 
-  localDeposit(depositAmount: number, previousBalance: number, userPrivateKey: PrivateKey) {
-    const args = {depositAmount, previousBalance, userPrivateKey58: userPrivateKey.toBase58()};
+  localDeposit(depositAmount: number, userPrivateKey: PrivateKey) {
+    const args = {depositAmount, userPrivateKey58: userPrivateKey.toBase58()};
     return this._call('localDeposit', args);
   }
 
@@ -99,8 +99,8 @@ export default class ZkappWorkerClient {
     return result;
   }
 
-  localWithdraw(userPrivateKey: PrivateKey, withdrawAmount: number) {
-    const args = {userPrivateKey58: userPrivateKey.toBase58(), withdrawAmount};
+  localWithdraw(userPrivateKey: PrivateKey) {
+    const args = {userPrivateKey58: userPrivateKey.toBase58()};
     return this._call('localWithdraw', args);
   }
 

@@ -47,7 +47,7 @@ export class MainContent extends React.Component<Props, State> {
 
     try {
       // TODO: JB - this does not support multiple balance changes.
-      await this.props.workerClient.localDeposit(1000, 0, localPrivateKey);
+      await this.props.workerClient.localDeposit(1000, localPrivateKey);
       this.refreshBalances()
     } catch (err) {
       throw err;
@@ -63,7 +63,7 @@ export class MainContent extends React.Component<Props, State> {
 
     try {
       // TODO: JB - this does not support multiple balance changes.
-      await this.props.workerClient.localWithdraw(userPrivateKey, 1000);
+      await this.props.workerClient.localWithdraw(userPrivateKey);
       this.refreshBalances()
     } catch (err) {
       throw err;
@@ -79,7 +79,7 @@ export class MainContent extends React.Component<Props, State> {
       <div>
         <button onClick={this.refreshBalances}>Refresh balances</button>
         <button onClick={this.handleDeposit} disabled={awaitingDeposit}>Deposit 1000</button>
-        <button onClick={this.handleWithdraw} disabled={awaitingWithdraw}>Withdraw (what amount???)</button>
+        <button onClick={this.handleWithdraw} disabled={awaitingWithdraw}>Withdraw Entire balance</button>
         {this.state.zkAppBalance ?
           <Balance balance={this.state.zkAppBalance} label="ZK App Account balance"/> :
           <div>Loading ZK App Balance...</div>
