@@ -81,5 +81,12 @@ function updateMap(existingMap: ExternalMerkleState | null, publicKey: PublicKey
   }
 }
 
+async function clearState() {
+  const url = `${BASE_URL}/flushdb/`;
+  console.debug(`DEV - setting state...`);
+  const _result = await fetch(url, {...HEADERS, method: 'POST'});
+  console.debug(`DEV - Flushed DB`);
+}
 
-export {getMerkleValuesExternally, setMerkleValueExternally, determineWithdrawAmount};
+
+export {getMerkleValuesExternally, setMerkleValueExternally, determineWithdrawAmount, clearState};

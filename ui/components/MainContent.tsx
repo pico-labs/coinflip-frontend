@@ -1,7 +1,9 @@
 import * as React from 'react';
 import {Field, PublicKey} from 'snarkyjs';
 import ZkappWorkerClient from '../pages/zkappWorkerClient';
+import {clearState, ExternalMerkleState, getMerkleValuesExternally} from '../utils/datasource';
 import { Balance} from './AccountInfo';
+import {FormattedExternalState} from './FormattedExternalState';
 interface Props {
   workerClient: ZkappWorkerClient;
   zkappPublicKey: PublicKey
@@ -14,6 +16,7 @@ interface State {
   userBalance?: string;
   awaitingDeposit: boolean;
   awaitingWithdraw: boolean;
+  externalState: ExternalMerkleState | null
 }
 
 export class MainContent extends React.Component<Props, State> {
@@ -23,12 +26,14 @@ export class MainContent extends React.Component<Props, State> {
       zkAppBalance: undefined,
       userBalance: undefined,
       awaitingDeposit: false,
-      awaitingWithdraw: false
+      awaitingWithdraw: false,
+      externalState: null
     }
   }
 
   public componentDidMount() {
     this.refreshBalances();
+    this.loadExternalBalances();
   }
 
   private refreshBalances = async () => {
@@ -38,6 +43,11 @@ export class MainContent extends React.Component<Props, State> {
       zkAppBalance,
       userBalance
     });
+  }
+
+  private loadExternalBalances = async () => {
+    const externalState = await getMerkleValuesExternally();
+    this.setState({externalState})
   }
 
   private handleDeposit = async () => {
@@ -70,16 +80,22 @@ export class MainContent extends React.Component<Props, State> {
     } finally {
       this.setState({awaitingWithdraw: false});
     }
+  }
 
+  private clearExternalData = async () => {
+    await clearState();
   }
 
   render() {
     const {awaitingDeposit, awaitingWithdraw} = this.state
     return (
       <div>
+        <hr/>
         <button onClick={this.refreshBalances}>Refresh balances</button>
         <button onClick={this.handleDeposit} disabled={awaitingDeposit}>Deposit 1000</button>
         <button onClick={this.handleWithdraw} disabled={awaitingWithdraw}>Withdraw Entire balance</button>
+        <button onClick={this.loadExternalBalances}>Refresh External State</button>
+        <button onClick={this.clearExternalData}>DELETE External State (be very careful!)</button>
         {this.state.zkAppBalance ?
           <Balance balance={this.state.zkAppBalance} label="ZK App Account balance"/> :
           <div>Loading ZK App Balance...</div>
@@ -88,6 +104,7 @@ export class MainContent extends React.Component<Props, State> {
           <Balance balance={this.state.userBalance} label="User account balance"/> :
           <div>Loading user account...</div>
         }
+        <FormattedExternalState values={this.state.externalState}/>
       </div>
     );
   }
