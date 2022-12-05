@@ -50,16 +50,9 @@ open http://localhost:3000/
 
 #### ui
 
-- [Built frontend does not seem to include service workers, making cross-origin headers not load, and entire app fail](https://discord.com/channels/484437221055922177/1046962321249017907/1047237453704089621)
-
-  - Does not affect local dev but will matter when we deploy
-  - Can be reproed locally with
-
-    ```
-    npm run build && npm run export && npm run start
-    open http://localhost:3000/
-    ```
-
 - TODOs
+  - Berkeley readiness
+    - Need to deploy to Berkeley and make our contract value defined in `ui/utils/constants.ts`
+    - Need to implement Berkeley withdrawl/deposit flow using transaction JSON
+  - Need to implement sequential deposits + withdrawls.
   - Error handling when fetching accounts has different interface based on a Local fetch versus Berkeley fetch; this should be standardized
-  - Need to factor out on-click handling into classes to remove business logic from component.

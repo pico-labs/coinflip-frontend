@@ -1,12 +1,16 @@
 import {
-  fetchAccount,
   PublicKey,
   PrivateKey,
   Field,
 } from 'snarkyjs'
-import {assertIsString} from '../utils/shared-functions';
+import {assertIsFetchResult, assertIsString, assertIsStringArray} from '../utils/shared-functions';
 
-import type { ZkappWorkerRequest, ZkappWorkerReponse, WorkerFunctions } from './zkappWorker';
+import type {
+  ZkappWorkerRequest,
+  ZkappWorkerReponse,
+  WorkerFunctions,
+  FetchResult
+} from './zkappWorker';
 
 export default class ZkappWorkerClient {
 
@@ -14,6 +18,11 @@ export default class ZkappWorkerClient {
 
   loadSnarkyJS() {
     return this._call('loadSnarkyJS', {});
+  }
+  async loadBalances(publicKeys: Array<PublicKey>): Promise<Array<string>> {
+    const result = await this._call('loadBalances', {publicKeys: publicKeys.map(k => k.toBase58())});
+    assertIsStringArray(result);
+    return result;
   }
 
   setActiveInstanceToBerkeley() {
@@ -41,9 +50,10 @@ export default class ZkappWorkerClient {
     return this._call('compileContract', {});
   }
 
-  fetchAccount({ publicKey }: { publicKey: PublicKey }): ReturnType<typeof fetchAccount> {
-    const result = this._call('fetchAccount', { publicKey58: publicKey.toBase58() });
-    return (result as ReturnType<typeof fetchAccount>);
+  async fetchAccount({ publicKey }: { publicKey: PublicKey }): Promise<FetchResult> {
+    const result = await this._call('fetchAccount', { publicKey58: publicKey.toBase58() });
+    assertIsFetchResult(result);
+    return result;
   }
 
   initZkappInstance(publicKey: PublicKey) {
@@ -53,6 +63,11 @@ export default class ZkappWorkerClient {
   initLocalZkappInstance(userPrivateKey: PrivateKey, appPrivateKey: PrivateKey) {
     const args = {userPrivateKey58: userPrivateKey.toBase58(), appPrivateKey58: appPrivateKey.toBase58()}
     return this._call('initLocalZkappInstance', args);
+  }
+
+  localDeposit(depositAmount: number, userPrivateKey: PrivateKey) {
+    const args = {depositAmount, userPrivateKey58: userPrivateKey.toBase58()};
+    return this._call('localDeposit', args);
   }
 
   createLocalUpdateTransaction(userPrivateKey: PrivateKey) {
@@ -82,6 +97,11 @@ export default class ZkappWorkerClient {
   async getTransactionJSON() {
     const result = await this._call('getTransactionJSON', {});
     return result;
+  }
+
+  localWithdraw(userPrivateKey: PrivateKey) {
+    const args = {userPrivateKey58: userPrivateKey.toBase58()};
+    return this._call('localWithdraw', args);
   }
 
   // ---------------------------------------------------------------------------------------

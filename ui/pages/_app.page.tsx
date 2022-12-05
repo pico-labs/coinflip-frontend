@@ -1,6 +1,7 @@
 import '../styles/globals.css'
 import { useEffect, useState } from "react";
 import './reactCOIServiceWorker';
+import {MainContent} from '../components/MainContent';
 import {SUPPORTED_NETWORKS} from '../utils/constants';
 import {setupNetwork} from '../utils/setup';
 
@@ -15,7 +16,7 @@ export interface AppState {
   zkappWorkerClient: null | ZkappWorkerClient,
   hasWallet: null | boolean,
   hasBeenSetup: boolean,
-  accountExists: boolean,
+  userAccountExists: boolean,
   currentNum: Field | null,
   publicKey: PublicKey | null,
   zkappPublicKey: PublicKey | null,
@@ -30,7 +31,7 @@ export default function App() {
     zkappWorkerClient: null as null | ZkappWorkerClient,
     hasWallet: null as null | boolean,
     hasBeenSetup: false,
-    accountExists: false,
+    userAccountExists: false,
     currentNum: null as null | Field,
     publicKey: null as null | PublicKey,
     zkappPublicKey: null as null | PublicKey,
@@ -60,7 +61,7 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      if (state.hasBeenSetup && !state.accountExists) {
+      if (state.hasBeenSetup && !state.userAccountExists) {
         for (;;) {
           console.log('checking if account exists...');
           const res = await state.zkappWorkerClient!.fetchAccount({ publicKey: state.publicKey! })
@@ -70,7 +71,7 @@ export default function App() {
           }
           await new Promise((resolve) => setTimeout(resolve, 5000));
         }
-        setState({ ...state, accountExists: true });
+        setState({ ...state, userAccountExists: true });
       }
     })();
   }, [state.hasBeenSetup]);
@@ -125,13 +126,8 @@ export default function App() {
   // -------------------------------------------------------
   // Refresh the current state
 
-  const onRefreshCurrentNum = async () => {
-    console.log('getting zkApp state...');
-    await state.zkappWorkerClient!.fetchAccount({ publicKey: state.zkappPublicKey! })
-    const currentNum = await state.zkappWorkerClient!.getNum();
-    console.log('current state:', currentNum.toString());
-
-    setState({ ...state, currentNum });
+  const onRefreshCurrentNum = async (num: Field) => {
+    setState({ ...state, currentNum: num });
   }
 
   let hasWallet;
@@ -145,7 +141,7 @@ export default function App() {
   let setup = <div> { setupText } { hasWallet }</div>
 
   let accountDoesNotExist;
-  if (state.hasBeenSetup && !state.accountExists) {
+  if (state.hasBeenSetup && !state.userAccountExists) {
     const faucetLink = "https://faucet.minaprotocol.com/?address=" + state.publicKey!.toBase58();
     accountDoesNotExist = <div>
       Account does not exist. Please visit the faucet to fund this account
@@ -153,18 +149,18 @@ export default function App() {
     </div>
   }
 
-  let mainContent;
-  if (state.hasBeenSetup && state.accountExists) {
-    mainContent = <div>
-      <button onClick={onSendTransaction} disabled={state.creatingTransaction}> Send Transaction </button>
-      <div> Current Number in zkApp: { state.currentNum!.toString() } </div>
-      <button onClick={onRefreshCurrentNum}> Get Latest State </button>
+  return (
+    <div>
+      { setup }
+      { accountDoesNotExist }
+      {state.hasBeenSetup && state.userAccountExists && state.zkappWorkerClient && state.zkappPublicKey && state.publicKey
+        && <MainContent
+          workerClient={state.zkappWorkerClient}
+          onUpdateNumCallback={onRefreshCurrentNum}
+          zkappPublicKey={state.zkappPublicKey}
+          userPublicKey={state.publicKey}
+        />
+      }
     </div>
-  }
-
-  return <div>
-    { setup }
-    { accountDoesNotExist }
-    { mainContent }
-  </div>
+  );
 }

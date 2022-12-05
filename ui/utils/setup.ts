@@ -37,7 +37,7 @@ async function setupAndDeriveState(workerClient: ZkappWorkerClient, currentAppSt
   console.log('checking if user account exists...');
   // TODO: JB -- Right now, a non-existent account in Berkeley returns an error object, whereas for local, it throws.
   const res = await workerClient.fetchAccount({ publicKey: config.userPublicKey });
-  const accountExists = !res.error;
+  const userAccountExists = !res.error;
 
   await workerClient.loadContract();
 
@@ -64,7 +64,7 @@ async function setupAndDeriveState(workerClient: ZkappWorkerClient, currentAppSt
     hasBeenSetup: true,
     publicKey: config.userPublicKey,
     zkappPublicKey: config.zkappPublicKey,
-    accountExists,
+    userAccountExists,
     currentNum
   }
 }
@@ -73,6 +73,7 @@ async function generateConfig(network: 'BERKELEY' | 'LOCAL', mina: MinaBrowserCl
   if (network === SUPPORTED_NETWORKS.BERKELEY) {
     const userPublicKeyBase58 = (await mina.requestAccounts())[0];
     const userPublicKey = PublicKey.fromBase58(userPublicKeyBase58);
+    // TODO: JB - NEED TO CHANGE FOR OUR CONTRACT ONCE DEPLOYED.
     const zkappPublicKey = PublicKey.fromBase58(networkConfig.Berkeley.addContract.publicKey);
     return {userPublicKey, zkappPublicKey, isBerkeley: true};
   } else if (network === SUPPORTED_NETWORKS.LOCAL) {
