@@ -8,7 +8,8 @@ interface Props {
   workerClient: ZkappWorkerClient;
   zkappPublicKey: PublicKey
   onUpdateNumCallback: (num: Field) => void;
-  userPublicKey: PublicKey
+  userPublicKey: PublicKey;
+  isLocal: boolean;
 }
 
 interface State {
@@ -46,7 +47,7 @@ export class MainContent extends React.Component<Props, State> {
   }
 
   private loadExternalBalances = async () => {
-    const externalState = await getMerkleValuesExternally();
+    const externalState = await getMerkleValuesExternally(this.props.isLocal);
     this.setState({externalState})
   }
 

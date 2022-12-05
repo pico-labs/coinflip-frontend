@@ -1,11 +1,14 @@
 
 const networkConfig = {
   Berkeley: {
-    addContract: {
-      publicKey: 'B62qrDe16LotjQhPRMwG12xZ8Yf5ES8ehNzZ25toJV28tE9FmeGq23A'
-    },
     coinflipContract: {
-      publicKey: undefined
+      publicKey: 'B62qiTeKV99ugy2JpAV1wGJ7cPGaUBBohH8MPjjGCVFdFexVmVyARHb',
+      datastoreKey: 'berkeley-state',
+    }
+  },
+  Local: {
+    coinflipContract: {
+      datastoreKey: 'local-state'
     }
   }
 }

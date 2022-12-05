@@ -31,6 +31,8 @@ export default class ZkappWorkerClient {
   setActiveInstanceToLocal() {
     return this._call('setActiveInstanceToLocal', {});
   }
+
+  // TODO: JB -- Return Berkeley private key here when testing against berkeley
   async getLocalPrivateKey(): Promise<PrivateKey> {
     const privateKey58 = await this._call('getLocalPrivateKey', {});
     assertIsString(privateKey58);

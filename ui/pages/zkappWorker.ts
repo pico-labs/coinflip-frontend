@@ -110,7 +110,7 @@ const functions = {
     state.zkapp = new state.Executor(publicKey);
 
     // TODO: JB - add support for berkeley
-    const externalMapState = await getMerkleValuesExternally();
+    const externalMapState = await getMerkleValuesExternally(state.isLocal);
     state.map = initializeMap(externalMapState)  // CD: Note, this is where we would load the persistently-stored map from somewhere else
   },
   initLocalZkappInstance: async (args: { userPrivateKey58: string, appPrivateKey58: string }) => {
@@ -129,7 +129,7 @@ const functions = {
     const sentTx = await tx.send();
     await sentTx.wait();
 
-    const externalMapState = await getMerkleValuesExternally();
+    const externalMapState = await getMerkleValuesExternally(state.isLocal);
     state.map = initializeMap(externalMapState)  // CD: Note, this is where we would load the persistently-stored map from somewhere else
     if (sentTx.hash() !== undefined) {
       console.debug(`DEV - Success! account funded, deployed, initialized`);
@@ -184,7 +184,6 @@ const functions = {
     return res.hash();
   },
   localDeposit: async (args: { depositAmount: number, userPrivateKey58: string }) => {
-    if (!state.isLocal) { throw 'only supported for local' }
     assertIsMerkleMap(state.map);
     const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
     const userPublicKey = PublicKey.fromPrivateKey(userPrivateKey);
@@ -193,7 +192,8 @@ const functions = {
     const previousBalanceField = state.map.get(key);
     const depositAmountField = Field(args.depositAmount);
 
-    const tx = await Mina.transaction(userPrivateKey, () => {
+    console.info(args.userPrivateKey58);
+    const tx = await Mina.transaction({feePayerKey: userPrivateKey, fee: 1_000_000_000}, () => {
       state.zkapp!.deposit(
         userPublicKey,
         depositAmountField,
@@ -207,26 +207,30 @@ const functions = {
     tx.sign([userPrivateKey]);
     console.debug('DEV - sending TX...')
     const sentTx = await tx.send();
+    console.info(sentTx);
     console.debug('DEV - waiting...')
-    await sentTx.wait();
-    console.debug(`DEV - TX hash: ${sentTx.hash}`);
+    const r = await sentTx.wait();
+    console.info(r);
+    console.debug(`DEV - TX hash: ${sentTx.hash()}`);
+    console.debug(tx.toPretty());
+    console.debug(tx.toJSON());
+
 
     // from CD: After a successful deposit, we track in the update in the merkle map
     const newBalance = previousBalanceField.add(depositAmountField);
     state.map.set(key, newBalance); // CD: Note, previous balance probably ought not to come from args, but just be read from the map
     // TODO: JB - Make sure this is right.
-    await setMerkleValueExternally(userPublicKey, parseInt(newBalance.toString()));
+    await setMerkleValueExternally(userPublicKey, parseInt(newBalance.toString()), state.isLocal);
   },
 
   localWithdraw: async (args: { userPrivateKey58: string }) => {
-    if (!state.isLocal) { throw 'only local supported' }
     assertIsMerkleMap(state.map);
     const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58)
     const userPublicKey = userPrivateKey.toPublicKey()
     const key = Poseidon.hash(userPublicKey.toFields());
     const witness = state.map.getWitness(key);
-    const withdrawAmount = await determineWithdrawAmount(userPublicKey)
-    const tx3 = await Mina.transaction(userPrivateKey, () => {
+    const withdrawAmount = await determineWithdrawAmount(userPublicKey, state.isLocal)
+    const tx3 = await Mina.transaction({feePayerKey: userPrivateKey, fee: 1_000_000_000}, () => {
       state.zkapp!.withdraw(
         userPrivateKey.toPublicKey(),
         Field(withdrawAmount),
@@ -240,7 +244,7 @@ const functions = {
 
     // from CD: after a successful withdrawal, we set to 0.
     state.map.set(key, Field(0));
-    await setMerkleValueExternally(userPublicKey, 0);
+    await setMerkleValueExternally(userPublicKey, 0, state.isLocal);
   }
 };
 

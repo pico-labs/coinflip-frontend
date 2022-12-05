@@ -23,8 +23,8 @@ export interface AppState {
   creatingTransaction: boolean
 }
 
-// const NETWORK = 'BERKELEY';
-const NETWORK = 'LOCAL';
+const NETWORK = 'BERKELEY';
+// const NETWORK = 'LOCAL';
 
 export default function App() {
   let [state, setState] = useState<AppState>({
@@ -149,6 +149,9 @@ export default function App() {
     </div>
   }
 
+  // TODO: JB
+  // @ts-ignore
+  const isLocal = NETWORK !== 'BERKELEY';
   return (
     <div>
       { setup }
@@ -159,6 +162,7 @@ export default function App() {
           onUpdateNumCallback={onRefreshCurrentNum}
           zkappPublicKey={state.zkappPublicKey}
           userPublicKey={state.publicKey}
+          isLocal={isLocal}
         />
       }
     </div>
