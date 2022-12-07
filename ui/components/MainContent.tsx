@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {Field, PublicKey} from 'snarkyjs';
+import {Field, PrivateKey, PublicKey} from 'snarkyjs';
 import ZkappWorkerClient from '../pages/zkappWorkerClient';
 import {clearState, ExternalMerkleState, getMerkleValuesExternally} from '../utils/datasource';
 import { Balance} from './AccountInfo';
@@ -17,6 +17,7 @@ interface State {
   awaitingDeposit: boolean;
   awaitingWithdraw: boolean;
   externalState: ExternalMerkleState | null
+  userInputPrivateKey: string;
 }
 
 export class MainContent extends React.Component<Props, State> {
@@ -27,7 +28,8 @@ export class MainContent extends React.Component<Props, State> {
       userBalance: undefined,
       awaitingDeposit: false,
       awaitingWithdraw: false,
-      externalState: null
+      externalState: null,
+      userInputPrivateKey: ''
     }
   }
 
@@ -52,12 +54,12 @@ export class MainContent extends React.Component<Props, State> {
 
   private handleDeposit = async () => {
     console.log(`method name: handleDeposit`);
-    const localPrivateKey = await this.props.workerClient.getLocalPrivateKey();
     this.setState({awaitingDeposit: true});
+    const {userInputPrivateKey} = this.state;
 
     try {
       // TODO: JB - this does not support multiple balance changes.
-      await this.props.workerClient.deposit(1000, localPrivateKey);
+      await this.props.workerClient.deposit(1000, PrivateKey.fromBase58(userInputPrivateKey));
       this.refreshBalances()
     } catch (err) {
       throw err;
@@ -68,18 +70,22 @@ export class MainContent extends React.Component<Props, State> {
 
   private handleWithdraw = async () => {
     console.log(`method name: handleWithdraw`);
-    const userPrivateKey = await this.props.workerClient.getLocalPrivateKey();
+    const {userInputPrivateKey} = this.state;
     this.setState({awaitingWithdraw: true});
 
     try {
       // TODO: JB - this does not support multiple balance changes.
-      await this.props.workerClient.withdraw(userPrivateKey);
+      await this.props.workerClient.withdraw(PrivateKey.fromBase58(userInputPrivateKey));
       this.refreshBalances()
     } catch (err) {
       throw err;
     } finally {
       this.setState({awaitingWithdraw: false});
     }
+  }
+
+  private setInputValue = (e: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({userInputPrivateKey: e.currentTarget.value});
   }
 
   private clearExternalData = async () => {
@@ -105,6 +111,8 @@ export class MainContent extends React.Component<Props, State> {
           <div>Loading user account...</div>
         }
         <FormattedExternalState values={this.state.externalState}/>
+        <label>Enter private key</label>
+        <input onChange={this.setInputValue}/>
       </div>
     );
   }

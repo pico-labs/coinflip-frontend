@@ -184,7 +184,6 @@ const functions = {
     return res.hash();
   },
   deposit: async (args: { depositAmount: number, userPrivateKey58: string }) => {
-    if (!state.isLocal) { throw 'only supported for local' }
     assertIsMerkleMap(state.map);
     const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
     const userPublicKey = PublicKey.fromPrivateKey(userPrivateKey);
@@ -219,7 +218,6 @@ const functions = {
   },
 
   withdraw: async (args: { userPrivateKey58: string }) => {
-    if (!state.isLocal) { throw 'only local supported' }
     assertIsMerkleMap(state.map);
     const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58)
     const userPublicKey = userPrivateKey.toPublicKey()
