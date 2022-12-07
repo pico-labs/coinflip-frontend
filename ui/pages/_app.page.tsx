@@ -23,8 +23,8 @@ export interface AppState {
   creatingTransaction: boolean
 }
 
-// const NETWORK = 'BERKELEY';
-const NETWORK = 'LOCAL';
+const NETWORK = 'BERKELEY';
+// const NETWORK = 'LOCAL';
 
 export default function App() {
   let [state, setState] = useState<AppState>({
@@ -161,6 +161,9 @@ export default function App() {
           userPublicKey={state.publicKey}
         />
       }
+      <footer>
+        <h3>Your currently configured network is {NETWORK}</h3>
+      </footer>
     </div>
   );
 }
