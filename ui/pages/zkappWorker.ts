@@ -7,9 +7,9 @@ import {
 type Account = {} // TODO: JB
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 import type { Executor } from 'coinflip-executor-contract/build/src/executor';
-import {determineWithdrawAmount, getMerkleValuesExternally, setMerkleValueExternally} from '../utils/datasource';
-import {initializeMap} from '../utils/merkle';
-import {assertIsMerkleMap} from '../utils/shared-functions';
+import { determineWithdrawAmount, getMerkleValuesExternally, setMerkleValueExternally } from '../utils/datasource';
+import { initializeMap } from '../utils/merkle';
+import { assertIsMerkleMap } from '../utils/shared-functions';
 
 type TestAccount = { publicKey: PublicKey, privateKey: PrivateKey };
 
@@ -57,13 +57,13 @@ const functions = {
     await isReady;
   },
   setActiveInstanceToBerkeley: async (_args: {}) => {
-    const Berkeley = Mina.BerkeleyQANet(
-      "https://proxy.berkeley.minaexplorer.com/graphql"
+    let Berkeley = Mina.Network(
+      'https://proxy.berkeley.minaexplorer.com/graphql'
     );
     Mina.setActiveInstance(Berkeley);
   },
   setActiveInstanceToLocal: async (_args: {}) => {
-    const Local = Mina.LocalBlockchain({proofsEnabled: true});
+    const Local = Mina.LocalBlockchain({ proofsEnabled: true });
     Mina.setActiveInstance(Local);
     state.testAccounts = Local.testAccounts;
     state.isLocal = true;
@@ -76,7 +76,7 @@ const functions = {
   },
   compileContract: async (_args: {}) => {
     assertsIsSpecifiedContract<Executor>(state.Executor, 'Executor');
-    await state.Executor.compile();
+    // await state.Executor.compile();
   },
   loadBalances: async (args: { publicKeys: Array<string> }): Promise<Array<string>> => {
     return args.publicKeys.map(key => {
@@ -151,7 +151,7 @@ const functions = {
     );
     state.transaction = transaction;
   },
-
+  
   // TODO: JB - Handle for executor
   createLocalUpdateTransaction: async (args: { userPrivateKey58: string }) => {
     const feePayerKey = PrivateKey.fromBase58(args.userPrivateKey58);
@@ -193,7 +193,7 @@ const functions = {
     const depositAmountField = Field(args.depositAmount);
 
     console.info(args.userPrivateKey58);
-    const tx = await Mina.transaction({feePayerKey: userPrivateKey, fee: 1_000_000_000}, () => {
+    const tx = await Mina.transaction({ feePayerKey: userPrivateKey, fee: 1_000_000_000 }, () => {
       state.zkapp!.deposit(
         userPublicKey,
         depositAmountField,
@@ -230,7 +230,7 @@ const functions = {
     const key = Poseidon.hash(userPublicKey.toFields());
     const witness = state.map.getWitness(key);
     const withdrawAmount = await determineWithdrawAmount(userPublicKey, state.isLocal)
-    const tx3 = await Mina.transaction({feePayerKey: userPrivateKey, fee: 1_000_000_000}, () => {
+    const tx3 = await Mina.transaction({ feePayerKey: userPrivateKey, fee: 1_000_000_000 }, () => {
       state.zkapp!.withdraw(
         userPrivateKey.toPublicKey(),
         Field(withdrawAmount),

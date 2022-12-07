@@ -3,7 +3,7 @@ import {
   PrivateKey,
   Field,
 } from 'snarkyjs'
-import {assertIsFetchResult, assertIsString, assertIsStringArray} from '../utils/shared-functions';
+import { assertIsFetchResult, assertIsString, assertIsStringArray } from '../utils/shared-functions';
 
 import type {
   ZkappWorkerRequest,
@@ -20,7 +20,7 @@ export default class ZkappWorkerClient {
     return this._call('loadSnarkyJS', {});
   }
   async loadBalances(publicKeys: Array<PublicKey>): Promise<Array<string>> {
-    const result = await this._call('loadBalances', {publicKeys: publicKeys.map(k => k.toBase58())});
+    const result = await this._call('loadBalances', { publicKeys: publicKeys.map(k => k.toBase58()) });
     assertIsStringArray(result);
     return result;
   }
@@ -63,17 +63,17 @@ export default class ZkappWorkerClient {
   }
 
   initLocalZkappInstance(userPrivateKey: PrivateKey, appPrivateKey: PrivateKey) {
-    const args = {userPrivateKey58: userPrivateKey.toBase58(), appPrivateKey58: appPrivateKey.toBase58()}
+    const args = { userPrivateKey58: userPrivateKey.toBase58(), appPrivateKey58: appPrivateKey.toBase58() }
     return this._call('initLocalZkappInstance', args);
   }
 
   localDeposit(depositAmount: number, userPrivateKey: PrivateKey) {
-    const args = {depositAmount, userPrivateKey58: userPrivateKey.toBase58()};
+    const args = { depositAmount, userPrivateKey58: userPrivateKey.toBase58() };
     return this._call('localDeposit', args);
   }
 
   createLocalUpdateTransaction(userPrivateKey: PrivateKey) {
-    const args = {userPrivateKey58: userPrivateKey.toBase58()}
+    const args = { userPrivateKey58: userPrivateKey.toBase58() }
     return this._call('createLocalUpdateTransaction', args);
   }
 
@@ -102,7 +102,7 @@ export default class ZkappWorkerClient {
   }
 
   localWithdraw(userPrivateKey: PrivateKey) {
-    const args = {userPrivateKey58: userPrivateKey.toBase58()};
+    const args = { userPrivateKey58: userPrivateKey.toBase58() };
     return this._call('localWithdraw', args);
   }
 
