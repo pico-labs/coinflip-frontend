@@ -183,7 +183,7 @@ const functions = {
     const res = await Mina.sendTransaction(state.transaction!)
     return res.hash();
   },
-  localDeposit: async (args: { depositAmount: number, userPrivateKey58: string }) => {
+  deposit: async (args: { depositAmount: number, userPrivateKey58: string }) => {
     if (!state.isLocal) { throw 'only supported for local' }
     assertIsMerkleMap(state.map);
     const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
@@ -218,7 +218,7 @@ const functions = {
     await setMerkleValueExternally(userPublicKey, parseInt(newBalance.toString()));
   },
 
-  localWithdraw: async (args: { userPrivateKey58: string }) => {
+  withdraw: async (args: { userPrivateKey58: string }) => {
     if (!state.isLocal) { throw 'only local supported' }
     assertIsMerkleMap(state.map);
     const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58)
@@ -233,9 +233,9 @@ const functions = {
         witness
       );
     });
-    console.debug('DEV - proving localWithdraw TX...');
+    console.debug('DEV - proving withdraw TX...');
     await tx3.prove();
-    console.debug('DEV - sending localWithdraw TX')
+    console.debug('DEV - sending withdraw TX')
     await tx3.send();
 
     // from CD: after a successful withdrawal, we set to 0.

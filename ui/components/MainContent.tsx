@@ -57,7 +57,7 @@ export class MainContent extends React.Component<Props, State> {
 
     try {
       // TODO: JB - this does not support multiple balance changes.
-      await this.props.workerClient.localDeposit(1000, localPrivateKey);
+      await this.props.workerClient.deposit(1000, localPrivateKey);
       this.refreshBalances()
     } catch (err) {
       throw err;
@@ -73,7 +73,7 @@ export class MainContent extends React.Component<Props, State> {
 
     try {
       // TODO: JB - this does not support multiple balance changes.
-      await this.props.workerClient.localWithdraw(userPrivateKey);
+      await this.props.workerClient.withdraw(userPrivateKey);
       this.refreshBalances()
     } catch (err) {
       throw err;
