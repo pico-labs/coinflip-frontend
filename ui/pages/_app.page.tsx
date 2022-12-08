@@ -2,7 +2,7 @@ import '../styles/globals.css'
 import { useEffect, useState } from "react";
 import './reactCOIServiceWorker';
 import {MainContent} from '../components/MainContent';
-import {SUPPORTED_NETWORKS} from '../utils/constants';
+import {networkConfig} from '../utils/constants';
 import {setupNetwork} from '../utils/setup';
 
 import ZkappWorkerClient from './zkappWorkerClient';
@@ -23,8 +23,7 @@ export interface AppState {
   creatingTransaction: boolean
 }
 
-const NETWORK = 'BERKELEY';
-// const NETWORK = 'LOCAL';
+const NETWORK = networkConfig.currentNetwork
 
 export default function App() {
   let [state, setState] = useState<AppState>({
@@ -79,57 +78,6 @@ export default function App() {
   // -------------------------------------------------------
   // Send a transaction
 
-  const onSendTransaction = async () => {
-    console.log(`method name: onSendTransaction`);
-    setState({ ...state, creatingTransaction: true });
-    console.log('sending a transaction...');
-
-    await state.zkappWorkerClient!.fetchAccount({ publicKey: state.publicKey! });
-    await state.zkappWorkerClient!.fetchAccount({ publicKey: state.zkappPublicKey! });
-
-    if (NETWORK === SUPPORTED_NETWORKS.BERKELEY) {
-      await state.zkappWorkerClient!.createUpdateTransaction();
-    } else if (NETWORK === SUPPORTED_NETWORKS.LOCAL) {
-      const localPrivateKey = await state.zkappWorkerClient!.getLocalPrivateKey();
-      await state.zkappWorkerClient?.createLocalUpdateTransaction(localPrivateKey);
-    }
-
-
-    console.log('creating proof...');
-    await state.zkappWorkerClient!.proveUpdateTransaction();
-
-    console.log('getting Transaction JSON...');
-    const transactionJSON = await state.zkappWorkerClient!.getTransactionJSON()
-    console.info(`transaction JSON: ${transactionJSON}`);
-
-    console.log('requesting send transaction...');
-
-    if (NETWORK === SUPPORTED_NETWORKS.BERKELEY) {
-      const { hash } = await (window as any).mina.sendTransaction({
-        transaction: transactionJSON,
-        feePayer: {
-          fee: 1,
-          memo: 'sending-from-frontend',
-        },
-      });
-      console.log(
-        'See transaction at https://berkeley.minaexplorer.com/transaction/' + hash
-      );
-    } else if (NETWORK === SUPPORTED_NETWORKS.LOCAL) {
-      const res = await state.zkappWorkerClient?.sendLocalTransaction();
-      console.info(`sent local transaction with hash: ${res}`);
-    }
-
-    setState({ ...state, creatingTransaction: false });
-  }
-
-  // -------------------------------------------------------
-  // Refresh the current state
-
-  const onRefreshCurrentNum = async (num: Field) => {
-    setState({ ...state, currentNum: num });
-  }
-
   let hasWallet;
   if (state.hasWallet != null && !state.hasWallet) {
     const auroLink = 'https://www.aurowallet.com/';
@@ -156,7 +104,7 @@ export default function App() {
       {state.hasBeenSetup && state.userAccountExists && state.zkappWorkerClient && state.zkappPublicKey && state.publicKey
         && <MainContent
           workerClient={state.zkappWorkerClient}
-          onUpdateNumCallback={onRefreshCurrentNum}
+          onUpdateNumCallback={() => {}}
           zkappPublicKey={state.zkappPublicKey}
           userPublicKey={state.publicKey}
         />

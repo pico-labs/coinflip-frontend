@@ -1,12 +1,18 @@
-
 const networkConfig = {
-  Berkeley: {
-    addContract: {
-      publicKey: 'B62qrDe16LotjQhPRMwG12xZ8Yf5ES8ehNzZ25toJV28tE9FmeGq23A'
-    },
+  currentNetwork: process.env.APP_NETWORK,
+  BERKELEY: {
     coinflipContract: {
-      publicKey: undefined
-    }
+      publicKey: 'B62qiTeKV99ugy2JpAV1wGJ7cPGaUBBohH8MPjjGCVFdFexVmVyARHb',
+      datastoreKey: 'berkeley-state',
+    },
+    oracleUrl: undefined,
+  },
+  LOCAL: {
+    coinflipContract: {
+      publicKey: undefined,
+      datastoreKey: 'local-state',
+    },
+    oracleUrl: 'http://localhost:3030/randomNumber'
   }
 }
 
