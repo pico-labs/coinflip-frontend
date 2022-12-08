@@ -11,6 +11,8 @@ import { determineWithdrawAmount, getMerkleValuesExternally, setMerkleValueExter
 import { initializeMap } from '../utils/merkle';
 import { assertIsMerkleMap } from '../utils/shared-functions';
 
+const MINA_FEE = 100_000_000;
+
 type TestAccount = { publicKey: PublicKey, privateKey: PrivateKey };
 
 interface FetchErrorField {
@@ -76,7 +78,7 @@ const functions = {
   },
   compileContract: async (_args: {}) => {
     assertsIsSpecifiedContract<Executor>(state.Executor, 'Executor');
-    // await state.Executor.compile();
+    await state.Executor.compile();
   },
   loadBalances: async (args: { publicKeys: Array<string> }): Promise<Array<string>> => {
     return args.publicKeys.map(key => {
@@ -155,7 +157,7 @@ const functions = {
   // TODO: JB - Handle for executor
   createLocalUpdateTransaction: async (args: { userPrivateKey58: string }) => {
     const feePayerKey = PrivateKey.fromBase58(args.userPrivateKey58);
-    const transaction = await Mina.transaction({ feePayerKey, fee: 100_000_000 }, () => {
+    const transaction = await Mina.transaction({ feePayerKey, fee: MINA_FEE }, () => {
       // TODO: JB
       // @ts-ignore
       state.zkapp!.update();
@@ -193,7 +195,7 @@ const functions = {
     const depositAmountField = Field(args.depositAmount);
 
     console.info(args.userPrivateKey58);
-    const tx = await Mina.transaction({ feePayerKey: userPrivateKey, fee: 1_000_000_000 }, () => {
+    const tx = await Mina.transaction({ feePayerKey: userPrivateKey, fee: MINA_FEE }, () => {
       state.zkapp!.deposit(
         userPublicKey,
         depositAmountField,
