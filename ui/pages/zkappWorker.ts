@@ -153,7 +153,7 @@ const functions = {
     );
     state.transaction = transaction;
   },
-  
+
   // TODO: JB - Handle for executor
   createLocalUpdateTransaction: async (args: { userPrivateKey58: string }) => {
     const feePayerKey = PrivateKey.fromBase58(args.userPrivateKey58);
@@ -185,7 +185,7 @@ const functions = {
     const res = await Mina.sendTransaction(state.transaction!)
     return res.hash();
   },
-  localDeposit: async (args: { depositAmount: number, userPrivateKey58: string }) => {
+  deposit: async (args: { depositAmount: number, userPrivateKey58: string }) => {
     assertIsMerkleMap(state.map);
     const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
     const userPublicKey = PublicKey.fromPrivateKey(userPrivateKey);
@@ -194,7 +194,6 @@ const functions = {
     const previousBalanceField = state.map.get(key);
     const depositAmountField = Field(args.depositAmount);
 
-    console.info(args.userPrivateKey58);
     const tx = await Mina.transaction({ feePayerKey: userPrivateKey, fee: MINA_FEE }, () => {
       state.zkapp!.deposit(
         userPublicKey,
@@ -225,7 +224,7 @@ const functions = {
     await setMerkleValueExternally(userPublicKey, parseInt(newBalance.toString()), state.isLocal);
   },
 
-  localWithdraw: async (args: { userPrivateKey58: string }) => {
+  withdraw: async (args: { userPrivateKey58: string }) => {
     assertIsMerkleMap(state.map);
     const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58)
     const userPublicKey = userPrivateKey.toPublicKey()
@@ -239,9 +238,9 @@ const functions = {
         witness
       );
     });
-    console.debug('DEV - proving localWithdraw TX...');
+    console.debug('DEV - proving withdraw TX...');
     await tx3.prove();
-    console.debug('DEV - sending localWithdraw TX')
+    console.debug('DEV - sending withdraw TX')
     await tx3.send();
 
     // from CD: after a successful withdrawal, we set to 0.

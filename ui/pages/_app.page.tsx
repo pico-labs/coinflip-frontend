@@ -159,6 +159,9 @@ export default function App() {
           isLocal={isLocal}
         />
       }
+      <footer>
+        <h3>Your currently configured network is {NETWORK}</h3>
+      </footer>
     </div>
   );
 }

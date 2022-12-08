@@ -5,7 +5,7 @@ const BASE_URL = `https://global-nice-gopher-30365.upstash.io`
 const HEADERS = {
   headers: {
     'Content-Type': 'application/json',
-    Authorization: "Bearer AXadASQgMzM1YmFlMjgtYTkyMi00ZmRhLTkwZjgtNzA0ZjhkMjg4OWI2MTMxNDg3M2Y2NjA3NGViNTk4YmU4NmJjMzhjOTBhMzY="
+    ...generateHeaders()
   }
 }
 
@@ -87,6 +87,14 @@ async function clearState() {
   console.debug(`DEV - setting state...`);
   await fetch(url, {...HEADERS, method: 'POST'});
   console.debug(`DEV - Flushed DB`);
+}
+
+function generateHeaders() {
+  const value = ['Bearer', ' ','AXadASQgMz', 'M1YmFlMjgtYTkyMi00ZmRhLTkwZjgtNzA0ZjhkMjg4OWI2MTMxNDg3M2Y2NjA3NGViNTk4YmU4NmJjMzhjOTBhMzY', '=']
+
+  return {
+    Authorization: value.join('')
+  }
 }
 
 

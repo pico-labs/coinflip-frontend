@@ -42,7 +42,7 @@ async function setupAndDeriveState(workerClient: ZkappWorkerClient, currentAppSt
   await workerClient.loadContract();
 
   console.log('compiling zkApp');
-  // await workerClient.compileContract();
+  await workerClient.compileContract();
   console.log('zkApp compiled');
 
   if (isBerkeleyConfig(config)) {
@@ -73,6 +73,7 @@ async function generateConfig(network: 'BERKELEY' | 'LOCAL', worker: ZkappWorker
   if (network === SUPPORTED_NETWORKS.BERKELEY) {
     // TODO: Allow user to input their private key and we can derive the public
     //       At least for now, that will allow for rapid testing
+    // @qcomps -- put public key here.
     const userPublicKeyBase58 = 'B62qkJ4kUg4qkevbJwVZUpKgTre9dPai1i39Rf8BmpNe8w4yzNPNJCb';
     const userPublicKey = PublicKey.fromBase58(userPublicKeyBase58);
     const zkappPublicKey = PublicKey.fromBase58(networkConfig.Berkeley.coinflipContract.publicKey);
