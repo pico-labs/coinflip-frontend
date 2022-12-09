@@ -1,6 +1,11 @@
-import {PublicKey, Poseidon, Field, MerkleMap, MerkleMapWitness} from 'snarkyjs';
-import {ExternalMerkleState} from './datasource';
-
+import {
+  PublicKey,
+  Poseidon,
+  Field,
+  MerkleMap,
+  MerkleMapWitness,
+} from "snarkyjs";
+import { ExternalMerkleState } from "./datasource";
 
 function initializeMap(knownState: ExternalMerkleState | null): MerkleMap {
   if (!knownState) {
@@ -15,7 +20,7 @@ function initializeMap(knownState: ExternalMerkleState | null): MerkleMap {
 }
 
 function generateMapKey(publicKey: PublicKey | string): Field {
-  if (typeof publicKey === 'string') {
+  if (typeof publicKey === "string") {
     return Poseidon.hash(PublicKey.fromBase58(publicKey).toFields());
   } else {
     return Poseidon.hash(publicKey.toFields());
@@ -26,4 +31,4 @@ function generateMapValue(value: number): Field {
   return Field(value);
 }
 
-export {initializeMap}
+export { initializeMap };
