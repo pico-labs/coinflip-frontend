@@ -2,7 +2,7 @@
 const networkConfig = {
   Berkeley: {
     coinflipContract: {
-      publicKey: 'B62qiTeKV99ugy2JpAV1wGJ7cPGaUBBohH8MPjjGCVFdFexVmVyARHb',
+      publicKey: 'B62qjAwNeTb4YqpaNwrLmCporHJ2jRiq5xYuVdGpmwq94cke2FQtVQG',
       datastoreKey: 'berkeley-state',
     }
   },

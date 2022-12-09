@@ -7,7 +7,7 @@ import {
 type Account = {} // TODO: JB
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 import type { Executor } from 'coinflip-executor-contract/build/src/executor';
-import { determineWithdrawAmount, getMerkleValuesExternally, setMerkleValueExternally } from '../utils/datasource';
+import { getMerkleValuesExternally, setMerkleValueExternally } from '../utils/datasource';
 import { initializeMap } from '../utils/merkle';
 import { assertIsMerkleMap } from '../utils/shared-functions';
 
@@ -40,6 +40,8 @@ interface State {
   testAccounts: Array<TestAccount> | null;
   localAppPrivateKey: PrivateKey | null;
   map: MerkleMap | null;
+  merkleKeys: Set<Field>;
+  contractRootHash: string;
 }
 
 const state: State = {
@@ -49,7 +51,9 @@ const state: State = {
   isLocal: false,
   testAccounts: null,
   localAppPrivateKey: null,
-  map: null
+  map: null,
+  merkleKeys: new Set(),
+  contractRootHash: '0',
 };
 
 // ---------------------------------------------------------------------------------------
@@ -112,8 +116,13 @@ const functions = {
     state.zkapp = new state.Executor(publicKey);
 
     // TODO: JB - add support for berkeley
-    const externalMapState = await getMerkleValuesExternally(state.isLocal);
-    state.map = initializeMap(externalMapState)  // CD: Note, this is where we would load the persistently-stored map from somewhere else
+    const appState = await fetchAccount({ publicKey });
+    console.log(`App State: ${appState}`)
+    const stateRootHash = appState.account!.appState![0];
+    state.contractRootHash = stateRootHash.toString();
+    const externalMapState = await getMerkleValuesExternally(state.contractRootHash);
+    state.map = externalMapState[0];
+    state.merkleKeys = externalMapState[1];
   },
   initLocalZkappInstance: async (args: { userPrivateKey58: string, appPrivateKey58: string }) => {
     assertsIsSpecifiedContract<Executor>(state.Executor, 'Executor');
@@ -131,8 +140,11 @@ const functions = {
     const sentTx = await tx.send();
     await sentTx.wait();
 
-    const externalMapState = await getMerkleValuesExternally(state.isLocal);
-    state.map = initializeMap(externalMapState)  // CD: Note, this is where we would load the persistently-stored map from somewhere else
+    const stateRootHash = Mina.getAccount(state.zkapp!.address).appState![0];
+    state.contractRootHash = stateRootHash.toString();
+    const externalMapState = await getMerkleValuesExternally(state.contractRootHash);
+    state.map = externalMapState[0];
+    state.merkleKeys = externalMapState[1];
     if (sentTx.hash() !== undefined) {
       console.debug(`DEV - Success! account funded, deployed, initialized`);
     }
@@ -216,12 +228,11 @@ const functions = {
     console.debug(tx.toPretty());
     console.debug(tx.toJSON());
 
-
     // from CD: After a successful deposit, we track in the update in the merkle map
     const newBalance = previousBalanceField.add(depositAmountField);
     state.map.set(key, newBalance); // CD: Note, previous balance probably ought not to come from args, but just be read from the map
     // TODO: JB - Make sure this is right.
-    await setMerkleValueExternally(userPublicKey, parseInt(newBalance.toString()), state.isLocal);
+    await setMerkleValueExternally(state.contractRootHash, userPublicKey, parseInt(newBalance.toString()));
   },
 
   withdraw: async (args: { userPrivateKey58: string }) => {
@@ -230,11 +241,10 @@ const functions = {
     const userPublicKey = userPrivateKey.toPublicKey()
     const key = Poseidon.hash(userPublicKey.toFields());
     const witness = state.map.getWitness(key);
-    const withdrawAmount = await determineWithdrawAmount(userPublicKey, state.isLocal)
     const tx3 = await Mina.transaction({ feePayerKey: userPrivateKey, fee: 1_000_000_000 }, () => {
       state.zkapp!.withdraw(
         userPrivateKey.toPublicKey(),
-        Field(withdrawAmount),
+        state.map!.get(key),
         witness
       );
     });
@@ -245,7 +255,7 @@ const functions = {
 
     // from CD: after a successful withdrawal, we set to 0.
     state.map.set(key, Field(0));
-    await setMerkleValueExternally(userPublicKey, 0, state.isLocal);
+    await setMerkleValueExternally(state.contractRootHash, userPublicKey, 0)
   }
 };
 
