@@ -15,8 +15,6 @@ export interface AppState {
   hasWallet: null | boolean;
   hasBeenSetup: boolean;
   userAccountExists: boolean;
-  currentNum: Field | null;
-  publicKey: PublicKey | null;
   zkappPublicKey: PublicKey | null;
   creatingTransaction: boolean;
   userInputPrivateKey?: PrivateKey;
@@ -30,8 +28,6 @@ export default function App() {
     hasWallet: null as null | boolean,
     hasBeenSetup: false,
     userAccountExists: false,
-    currentNum: null as null | Field,
-    publicKey: null as null | PublicKey,
     zkappPublicKey: null as null | PublicKey,
     creatingTransaction: false,
     userInputPrivateKey: undefined,
@@ -40,7 +36,8 @@ export default function App() {
   useEffect(() => {
     (async () => {
       const { hasBeenSetup, userInputPrivateKey } = state;
-      if (!hasBeenSetup && userInputPrivateKey) {
+      const shouldRun = (!hasBeenSetup && userInputPrivateKey) || (NETWORK === 'LOCAL' && !hasBeenSetup);
+      if (shouldRun) {
         const zkappWorkerClient = new ZkappWorkerClient();
 
         console.log("Loading SnarkyJS...");
@@ -66,7 +63,7 @@ export default function App() {
         for (;;) {
           console.log("checking if account exists...");
           const res = await state.zkappWorkerClient!.fetchAccount({
-            publicKey: state.publicKey!,
+            publicKey: state.userInputPrivateKey!.toPublicKey(),
           });
           const accountExists = res.error == null;
           if (accountExists) {
@@ -81,8 +78,7 @@ export default function App() {
 
   function handleInputValueChange(e: React.ChangeEvent<HTMLInputElement>) {
     const privateKey = PrivateKey.fromBase58(e.currentTarget.value);
-    const publicKey = privateKey.toPublicKey();
-    setState({ ...state, userInputPrivateKey: privateKey, publicKey });
+    setState({ ...state, userInputPrivateKey: privateKey });
   }
 
   // -------------------------------------------------------

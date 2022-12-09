@@ -20,7 +20,6 @@ export interface ExternalMerkleState {
   [key: string]: PublicKeyMerkleState;
 }
 
-// TODO: JB make configurable per network
 async function setMerkleValueExternally(
   publicKey: PublicKey,
   newBalance: number,
@@ -32,7 +31,7 @@ async function setMerkleValueExternally(
     ? updateMap(existingMapFromStorage, publicKey, newBalance)
     : updateMap(null, publicKey, newBalance);
   const networkKey = isLocal
-    ? networkConfig.BERKELEY.coinflipContract.datastoreKey
+    ? networkConfig.LOCAL.coinflipContract.datastoreKey
     : networkConfig.BERKELEY.coinflipContract.datastoreKey;
   const url = `${BASE_URL}/set/${networkKey}`;
   console.debug(`DEV - setting state...`);

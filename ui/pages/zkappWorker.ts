@@ -129,8 +129,6 @@ const functions = {
     assertsIsSpecifiedContract<Executor>(state.Executor, "Executor");
     const publicKey = PublicKey.fromBase58(args.publicKey58);
     state.zkapp = new state.Executor(publicKey);
-
-    // TODO: JB - add support for berkeley
     const externalMapState = await getMerkleValuesExternally(state.isLocal);
     state.map = initializeMap(externalMapState); // CD: Note, this is where we would load the persistently-stored map from somewhere else
   },
@@ -250,7 +248,6 @@ const functions = {
     // from CD: After a successful deposit, we track in the update in the merkle map
     const newBalance = previousBalanceField.add(depositAmountField);
     state.map.set(key, newBalance); // CD: Note, previous balance probably ought not to come from args, but just be read from the map
-    // TODO: JB - Make sure this is right.
     await setMerkleValueExternally(
       userPublicKey,
       parseInt(newBalance.toString()),
