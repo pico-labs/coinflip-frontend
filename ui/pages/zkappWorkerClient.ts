@@ -1,4 +1,4 @@
-import { PublicKey, PrivateKey, Field } from "snarkyjs";
+import { PublicKey, PrivateKey } from "snarkyjs";
 import {
   assertIsFetchResult,
   assertIsString,
@@ -84,35 +84,6 @@ export default class ZkappWorkerClient {
   deposit(depositAmount: number, userPrivateKey: PrivateKey) {
     const args = { depositAmount, userPrivateKey58: userPrivateKey.toBase58() };
     return this._call("deposit", args);
-  }
-
-  createLocalUpdateTransaction(userPrivateKey: PrivateKey) {
-    const args = { userPrivateKey58: userPrivateKey.toBase58() };
-    return this._call("createLocalUpdateTransaction", args);
-  }
-
-  async sendLocalTransaction(): Promise<string> {
-    const result = await this._call("sendLocalTransaction", {});
-    assertIsString(result);
-    return result;
-  }
-
-  async getNum(): Promise<Field> {
-    const result = await this._call("getNum", {});
-    return Field.fromJSON(JSON.parse(result as string));
-  }
-
-  createUpdateTransaction() {
-    return this._call("createUpdateTransaction", {});
-  }
-
-  proveUpdateTransaction() {
-    return this._call("proveUpdateTransaction", {});
-  }
-
-  async getTransactionJSON() {
-    const result = await this._call("getTransactionJSON", {});
-    return result;
   }
 
   withdraw(userPrivateKey: PrivateKey) {
