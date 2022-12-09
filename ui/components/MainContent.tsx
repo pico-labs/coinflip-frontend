@@ -1,14 +1,15 @@
 import * as React from 'react';
-import {Field, PrivateKey, PublicKey} from 'snarkyjs';
+import { Field, PrivateKey, PublicKey } from 'snarkyjs';
 import ZkappWorkerClient from '../pages/zkappWorkerClient';
-import {clearState, ExternalMerkleState, getMerkleValuesExternally} from '../utils/datasource';
-import { Balance} from './AccountInfo';
-import {FormattedExternalState} from './FormattedExternalState';
+import { clearState, ExternalMerkleState, getMerkleValuesExternally } from '../utils/datasource';
+import { Balance } from './AccountInfo';
+import { FormattedExternalState } from './FormattedExternalState';
 interface Props {
   workerClient: ZkappWorkerClient;
   zkappPublicKey: PublicKey
   onUpdateNumCallback: (num: Field) => void;
-  userPublicKey: PublicKey
+  userPublicKey: PublicKey;
+  isLocal: boolean;
 }
 
 interface State {
@@ -39,7 +40,7 @@ export class MainContent extends React.Component<Props, State> {
   }
 
   private refreshBalances = async () => {
-    const {zkappPublicKey, userPublicKey} = this.props;
+    const { zkappPublicKey, userPublicKey } = this.props;
     const [zkAppBalance, userBalance] = await this.props.workerClient.loadBalances([zkappPublicKey, userPublicKey])
     this.setState({
       zkAppBalance,
@@ -48,8 +49,8 @@ export class MainContent extends React.Component<Props, State> {
   }
 
   private loadExternalBalances = async () => {
-    const externalState = await getMerkleValuesExternally();
-    this.setState({externalState})
+    const externalState = await getMerkleValuesExternally(this.props.isLocal);
+    this.setState({ externalState })
   }
 
   private handleDeposit = async () => {
@@ -64,14 +65,14 @@ export class MainContent extends React.Component<Props, State> {
     } catch (err) {
       throw err;
     } finally {
-      this.setState({awaitingDeposit: false});
+      this.setState({ awaitingDeposit: false });
     }
   }
 
   private handleWithdraw = async () => {
     console.log(`method name: handleWithdraw`);
     const {userInputPrivateKey} = this.state;
-    this.setState({awaitingWithdraw: true});
+    this.setState({ awaitingWithdraw: true });
 
     try {
       // TODO: JB - this does not support multiple balance changes.
@@ -80,7 +81,7 @@ export class MainContent extends React.Component<Props, State> {
     } catch (err) {
       throw err;
     } finally {
-      this.setState({awaitingWithdraw: false});
+      this.setState({ awaitingWithdraw: false });
     }
   }
 
@@ -93,24 +94,24 @@ export class MainContent extends React.Component<Props, State> {
   }
 
   render() {
-    const {awaitingDeposit, awaitingWithdraw} = this.state
+    const { awaitingDeposit, awaitingWithdraw } = this.state
     return (
       <div>
-        <hr/>
+        <hr />
         <button onClick={this.refreshBalances}>Refresh balances</button>
         <button onClick={this.handleDeposit} disabled={awaitingDeposit}>Deposit 1000</button>
         <button onClick={this.handleWithdraw} disabled={awaitingWithdraw}>Withdraw Entire balance</button>
         <button onClick={this.loadExternalBalances}>Refresh External State</button>
         <button onClick={this.clearExternalData}>DELETE External State (be very careful!)</button>
         {this.state.zkAppBalance ?
-          <Balance balance={this.state.zkAppBalance} label="ZK App Account balance"/> :
+          <Balance balance={this.state.zkAppBalance} label="ZK App Account balance" /> :
           <div>Loading ZK App Balance...</div>
         }
         {this.state.userBalance ?
-          <Balance balance={this.state.userBalance} label="User account balance"/> :
+          <Balance balance={this.state.userBalance} label="User account balance" /> :
           <div>Loading user account...</div>
         }
-        <FormattedExternalState values={this.state.externalState}/>
+        <FormattedExternalState values={this.state.externalState} />
         <label>Enter private key</label>
         <input onChange={this.setInputValue}/>
       </div>
