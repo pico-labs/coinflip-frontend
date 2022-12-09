@@ -1,120 +1,137 @@
+import { PublicKey, PrivateKey, Field } from "snarkyjs";
 import {
-  PublicKey,
-  PrivateKey,
-  Field,
-} from 'snarkyjs'
-import { assertIsFetchResult, assertIsString, assertIsStringArray } from '../utils/shared-functions';
+  assertIsFetchResult,
+  assertIsString,
+  assertIsStringArray,
+} from "../utils/shared-functions";
 
 import type {
   ZkappWorkerRequest,
   ZkappWorkerReponse,
   WorkerFunctions,
-  FetchResult
-} from './zkappWorker';
+  FetchResult,
+} from "./zkappWorker";
 
 export default class ZkappWorkerClient {
-
   // ---------------------------------------------------------------------------------------
 
   loadSnarkyJS() {
-    return this._call('loadSnarkyJS', {});
+    return this._call("loadSnarkyJS", {});
   }
   async loadBalances(publicKeys: Array<PublicKey>): Promise<Array<string>> {
-    const result = await this._call('loadBalances', { publicKeys: publicKeys.map(k => k.toBase58()) });
+    const result = await this._call("loadBalances", {
+      publicKeys: publicKeys.map((k) => k.toBase58()),
+    });
     assertIsStringArray(result);
     return result;
   }
 
   setActiveInstanceToBerkeley() {
-    return this._call('setActiveInstanceToBerkeley', {});
+    return this._call("setActiveInstanceToBerkeley", {});
   }
   setActiveInstanceToLocal() {
-    return this._call('setActiveInstanceToLocal', {});
+    return this._call("setActiveInstanceToLocal", {});
   }
 
   async getLocalPrivateKey(): Promise<PrivateKey> {
-    const privateKey58 = await this._call('getLocalPrivateKey', {});
+    const privateKey58 = await this._call("getLocalPrivateKey", {});
     assertIsString(privateKey58);
     return PrivateKey.fromBase58(privateKey58);
   }
   async getLocalAppPrivateKey(): Promise<PrivateKey> {
-    const privateKey58 = await this._call('getLocalAppPrivateKey', {});
+    const privateKey58 = await this._call("getLocalAppPrivateKey", {});
     assertIsString(privateKey58);
     return PrivateKey.fromBase58(privateKey58);
   }
 
   loadContract() {
-    return this._call('loadContract', {});
+    return this._call("loadContract", {});
   }
 
   compileContract() {
-    return this._call('compileContract', {});
+    return this._call("compileContract", {});
   }
 
-  async fetchAccount({ publicKey }: { publicKey: PublicKey }): Promise<FetchResult> {
-    const result = await this._call('fetchAccount', { publicKey58: publicKey.toBase58() });
+  async fetchAccount({
+    publicKey,
+  }: {
+    publicKey: PublicKey;
+  }): Promise<FetchResult> {
+    const result = await this._call("fetchAccount", {
+      publicKey58: publicKey.toBase58(),
+    });
     assertIsFetchResult(result);
     return result;
   }
 
   initZkappInstance(publicKey: PublicKey) {
-    return this._call('initZkappInstance', { publicKey58: publicKey.toBase58() });
+    return this._call("initZkappInstance", {
+      publicKey58: publicKey.toBase58(),
+    });
   }
 
-  initLocalZkappInstance(userPrivateKey: PrivateKey, appPrivateKey: PrivateKey) {
-    const args = { userPrivateKey58: userPrivateKey.toBase58(), appPrivateKey58: appPrivateKey.toBase58() }
-    return this._call('initLocalZkappInstance', args);
+  initLocalZkappInstance(
+    userPrivateKey: PrivateKey,
+    appPrivateKey: PrivateKey
+  ) {
+    const args = {
+      userPrivateKey58: userPrivateKey.toBase58(),
+      appPrivateKey58: appPrivateKey.toBase58(),
+    };
+    return this._call("initLocalZkappInstance", args);
   }
 
   deposit(depositAmount: number, userPrivateKey: PrivateKey) {
     const args = { depositAmount, userPrivateKey58: userPrivateKey.toBase58() };
-    return this._call('deposit', args);
+    return this._call("deposit", args);
   }
 
   createLocalUpdateTransaction(userPrivateKey: PrivateKey) {
-    const args = { userPrivateKey58: userPrivateKey.toBase58() }
-    return this._call('createLocalUpdateTransaction', args);
+    const args = { userPrivateKey58: userPrivateKey.toBase58() };
+    return this._call("createLocalUpdateTransaction", args);
   }
 
   async sendLocalTransaction(): Promise<string> {
-    const result = await this._call('sendLocalTransaction', {});
+    const result = await this._call("sendLocalTransaction", {});
     assertIsString(result);
-    return result
+    return result;
   }
 
   async getNum(): Promise<Field> {
-    const result = await this._call('getNum', {});
+    const result = await this._call("getNum", {});
     return Field.fromJSON(JSON.parse(result as string));
   }
 
   createUpdateTransaction() {
-    return this._call('createUpdateTransaction', {});
+    return this._call("createUpdateTransaction", {});
   }
 
   proveUpdateTransaction() {
-    return this._call('proveUpdateTransaction', {});
+    return this._call("proveUpdateTransaction", {});
   }
 
   async getTransactionJSON() {
-    const result = await this._call('getTransactionJSON', {});
+    const result = await this._call("getTransactionJSON", {});
     return result;
   }
 
   withdraw(userPrivateKey: PrivateKey) {
     const args = { userPrivateKey58: userPrivateKey.toBase58() };
-    return this._call('withdraw', args);
+    return this._call("withdraw", args);
   }
 
   // ---------------------------------------------------------------------------------------
 
   worker: Worker;
 
-  promises: { [id: number]: { resolve: (res: any) => void, reject: (err: any) => void } };
+  promises: {
+    [id: number]: { resolve: (res: any) => void; reject: (err: any) => void };
+  };
 
   nextId: number;
 
   constructor() {
-    this.worker = new Worker(new URL('./zkappWorker.ts', import.meta.url))
+    this.worker = new Worker(new URL("./zkappWorker.ts", import.meta.url));
     this.promises = {};
     this.nextId = 0;
 
@@ -126,7 +143,7 @@ export default class ZkappWorkerClient {
 
   _call(fn: WorkerFunctions, args: any) {
     return new Promise((resolve, reject) => {
-      this.promises[this.nextId] = { resolve, reject }
+      this.promises[this.nextId] = { resolve, reject };
 
       const message: ZkappWorkerRequest = {
         id: this.nextId,
@@ -140,4 +157,3 @@ export default class ZkappWorkerClient {
     });
   }
 }
-
