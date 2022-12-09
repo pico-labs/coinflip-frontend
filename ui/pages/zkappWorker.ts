@@ -1,3 +1,4 @@
+import { Executor } from "coinflip-executor-contract";
 import {
   Mina,
   isReady,
@@ -11,7 +12,7 @@ import {
 } from "snarkyjs";
 type Account = {}; // TODO: JB
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
-import type { Executor } from "coinflip-executor-contract/build/src/executor";
+
 import {
   determineWithdrawAmount,
   getMerkleValuesExternally,
@@ -81,9 +82,7 @@ const functions = {
     state.localAppPrivateKey = PrivateKey.random();
   },
   loadContract: async (_args: {}) => {
-    const { Executor } = await import(
-      "coinflip-executor-contract/build/src/executor"
-    );
+    const { Executor } = await import("coinflip-executor-contract");
     assertsIsSpecifiedContract<Executor>(Executor, "Executor");
     state.Executor = Executor;
   },
