@@ -71,7 +71,6 @@ export class MainContent extends React.Component<Props, State> {
     this.setState({ awaitingDeposit: true });
 
     try {
-      // @qcomps
       await this.props.workerClient.deposit(1000, this.props.userPrivateKey);
       this.refreshBalances();
     } catch (err) {
