@@ -1,7 +1,7 @@
 import '../styles/globals.css'
 import { useEffect, useState } from "react";
 import './reactCOIServiceWorker';
-import {MainContent} from '../components/MainContent';
+import { MainContent } from '../components/MainContent';
 import {networkConfig} from '../utils/constants';
 import {setupNetwork} from '../utils/setup';
 
@@ -46,14 +46,8 @@ export default function App() {
         await zkappWorkerClient.loadSnarkyJS();
         console.log('done');
 
-        const mina = (window as any).mina;
-        if (mina == null) {
-          setState({ ...state, hasWallet: false });
-          return;
-        } else {
-          const setupState = await setupNetwork(NETWORK, mina, zkappWorkerClient, state);
-          setState({...setupState});
-        }
+        const setupState = await setupNetwork(NETWORK, zkappWorkerClient, state);
+        setState({ ...setupState });
       }
     })();
   }, []);
@@ -61,7 +55,7 @@ export default function App() {
   useEffect(() => {
     (async () => {
       if (state.hasBeenSetup && !state.userAccountExists) {
-        for (;;) {
+        for (; ;) {
           console.log('checking if account exists...');
           const res = await state.zkappWorkerClient!.fetchAccount({ publicKey: state.publicKey! })
           const accountExists = res.error == null;
@@ -82,11 +76,11 @@ export default function App() {
   if (state.hasWallet != null && !state.hasWallet) {
     const auroLink = 'https://www.aurowallet.com/';
     const auroLinkElem = <a href={auroLink} target="_blank" rel="noreferrer"> [Link] </a>
-    hasWallet = <div> Could not find a wallet. Install Auro wallet here: { auroLinkElem }</div>
+    hasWallet = <div> Could not find a wallet. Install Auro wallet here: {auroLinkElem}</div>
   }
 
   let setupText = state.hasBeenSetup ? 'SnarkyJS Ready' : 'Setting up SnarkyJS...';
-  let setup = <div> { setupText } { hasWallet }</div>
+  let setup = <div> {setupText} {hasWallet}</div>
 
   let accountDoesNotExist;
   if (state.hasBeenSetup && !state.userAccountExists) {
@@ -97,6 +91,9 @@ export default function App() {
     </div>
   }
 
+  // TODO: JB
+  // @ts-ignore
+  const isLocal = NETWORK !== 'BERKELEY';
   return (
     <div>
       { setup }
@@ -107,6 +104,7 @@ export default function App() {
           onUpdateNumCallback={() => {}}
           zkappPublicKey={state.zkappPublicKey}
           userPublicKey={state.publicKey}
+          isLocal={isLocal}
         />
       }
       <footer>

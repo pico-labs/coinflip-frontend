@@ -1,6 +1,6 @@
 import {Field, PublicKey} from 'snarkyjs';
+import {networkConfig} from './constants';
 
-const LOCAL_NETWORK_KEY = 'local-state';
 const BASE_URL = `https://global-nice-gopher-30365.upstash.io`
 const HEADERS = {
   headers: {
@@ -22,11 +22,12 @@ export interface ExternalMerkleState {
 
 
 // TODO: JB make configurable per network
-async function setMerkleValueExternally(publicKey: PublicKey, newBalance: number): Promise<string | null> {
+async function setMerkleValueExternally(publicKey: PublicKey, newBalance: number, isLocal: boolean): Promise<string | null> {
   console.debug(`method name: setMerkleValueExternally`);
-  const existingMapFromStorage = await getMerkleValuesExternally();
+  const existingMapFromStorage = await getMerkleValuesExternally(isLocal);
   const updatedMap = existingMapFromStorage ? updateMap(existingMapFromStorage, publicKey, newBalance) : updateMap(null, publicKey, newBalance);
-  const url = `${BASE_URL}/set/${LOCAL_NETWORK_KEY}`;
+  const networkKey = isLocal ? networkConfig.BERKELEY.coinflipContract.datastoreKey : networkConfig.BERKELEY.coinflipContract.datastoreKey
+  const url = `${BASE_URL}/set/${networkKey}`;
   console.debug(`DEV - setting state...`);
   const result = await fetch(url, {...HEADERS, method: 'POST', body: JSON.stringify(updatedMap)});
   const json  = (await result.json() as ServerResult);
@@ -38,10 +39,10 @@ async function setMerkleValueExternally(publicKey: PublicKey, newBalance: number
 }
 
 
-async function getMerkleValuesExternally(): Promise<null | ExternalMerkleState> {
+async function getMerkleValuesExternally(isLocal: boolean): Promise<null | ExternalMerkleState> {
   console.debug(`method name: getMerkleValuesExternally`);
-  const key = 'local-state';
-  const url = `${BASE_URL}/get/${key}`;
+  const networkKey = isLocal ? networkConfig.LOCAL.coinflipContract.datastoreKey : networkConfig.BERKELEY.coinflipContract.datastoreKey
+  const url = `${BASE_URL}/get/${networkKey}`;
   const result = await fetch(url, {...HEADERS});
   const json  = (await result.json() as ServerResult);
   if (json.result) {
@@ -57,8 +58,8 @@ function parseResult(json: ServerResult): ExternalMerkleState {
   return JSON.parse(json.result as string);
 }
 
-async function determineWithdrawAmount(key: PublicKey): Promise<Field> {
-  const stateValues = await getMerkleValuesExternally();
+async function determineWithdrawAmount(key: PublicKey, isLocal: boolean): Promise<Field> {
+  const stateValues = await getMerkleValuesExternally(isLocal);
   if (stateValues) {
     const balanceToWithdraw = stateValues[key.toBase58()].balance;
     if (!balanceToWithdraw) {
@@ -84,7 +85,7 @@ function updateMap(existingMap: ExternalMerkleState | null, publicKey: PublicKey
 async function clearState() {
   const url = `${BASE_URL}/flushdb/`;
   console.debug(`DEV - setting state...`);
-  const _result = await fetch(url, {...HEADERS, method: 'POST'});
+  await fetch(url, {...HEADERS, method: 'POST'});
   console.debug(`DEV - Flushed DB`);
 }
 
