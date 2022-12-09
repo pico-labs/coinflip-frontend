@@ -159,41 +159,6 @@ const functions = {
       console.debug(`DEV - Success! account funded, deployed, initialized`);
     }
   },
-  // TODO: JB
-  getNum: async (_args: {}) => {
-    // const currentNum = await state.zkapp!.num.get();
-    // return JSON.stringify(currentNum.toJSON());
-    return JSON.stringify(999);
-  },
-  // TODO: JB handle for executor state
-  createUpdateTransaction: async (_args: {}) => {
-    const transaction = await Mina.transaction(() => {
-      // TODO: JB
-      // @ts-ignore
-      state.zkapp!.update();
-    });
-    state.transaction = transaction;
-  },
-
-  // TODO: JB - Handle for executor
-  createLocalUpdateTransaction: async (args: { userPrivateKey58: string }) => {
-    const feePayerKey = PrivateKey.fromBase58(args.userPrivateKey58);
-    const transaction = await Mina.transaction(
-      { feePayerKey, fee: MINA_FEE },
-      () => {
-        // TODO: JB
-        // @ts-ignore
-        state.zkapp!.update();
-      }
-    );
-    state.transaction = transaction;
-  },
-  proveUpdateTransaction: async (_args: {}) => {
-    await state.transaction!.prove();
-  },
-  getTransactionJSON: async (_args: {}) => {
-    return state.transaction!.toJSON();
-  },
   getLocalPrivateKey: async (_args: {}) => {
     return state.testAccounts![0].privateKey.toBase58();
   },
@@ -203,10 +168,6 @@ const functions = {
     } else {
       throw "This operation is only supported on local and with a private key initialized; are you on the right network?";
     }
-  },
-  sendLocalTransaction: async (_args: {}) => {
-    const res = await Mina.sendTransaction(state.transaction!);
-    return res.hash();
   },
   deposit: async (args: {
     depositAmount: number;
