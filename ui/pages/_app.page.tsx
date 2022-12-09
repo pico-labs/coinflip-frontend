@@ -88,23 +88,6 @@ export default function App() {
   // -------------------------------------------------------
   // Send a transaction
 
-  let hasWallet;
-  if (state.hasWallet != null && !state.hasWallet) {
-    const auroLink = "https://www.aurowallet.com/";
-    const auroLinkElem = (
-      <a href={auroLink} target="_blank" rel="noreferrer">
-        {" "}
-        [Link]{" "}
-      </a>
-    );
-    hasWallet = (
-      <div>
-        {" "}
-        Could not find a wallet. Install Auro wallet here: {auroLinkElem}
-      </div>
-    );
-  }
-
   let setupText = state.hasBeenSetup
     ? "SnarkyJS Ready"
     : state.userInputPrivateKey
@@ -113,7 +96,7 @@ export default function App() {
   let setup = (
     <div>
       {" "}
-      {setupText} {hasWallet}
+      {setupText}
     </div>
   );
 

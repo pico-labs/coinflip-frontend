@@ -73,6 +73,7 @@ export class MainContent extends React.Component<Props, State> {
     try {
       await this.props.workerClient.deposit(1000, this.props.userPrivateKey);
       this.refreshBalances();
+      this.loadExternalBalances();
     } catch (err) {
       throw err;
     } finally {
@@ -118,6 +119,7 @@ export class MainContent extends React.Component<Props, State> {
         <button onClick={this.clearExternalData}>
           DELETE External State (be very careful!)
         </button>
+        <hr/>
         {this.state.zkAppBalance ? (
           <Balance
             balance={this.state.zkAppBalance}
@@ -134,6 +136,8 @@ export class MainContent extends React.Component<Props, State> {
         ) : (
           <div>Loading user account...</div>
         )}
+        <hr/>
+        <h2>External state balances</h2>
         <FormattedExternalState values={this.state.externalState} />
       </div>
     );
