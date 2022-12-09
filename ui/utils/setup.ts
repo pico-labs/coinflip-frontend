@@ -76,6 +76,8 @@ async function setupAndDeriveState(workerClient: ZkappWorkerClient, currentAppSt
 async function generateConfig(network: 'BERKELEY' | 'LOCAL', worker: ZkappWorkerClient): Promise<LocalSetupConfig | BerkeleySetupConfig> {
   if (network === SUPPORTED_NETWORKS.BERKELEY) {
     // @qcomps -- put public key here.
+    // TODO: JB
+    // @ts-ignore
     const userPublicKeyBase58 = PrivateKey.fromBase58(process.env.USER_PRIV_KEY).toPublicKey().toBase58();
     const userPublicKey = PublicKey.fromBase58(userPublicKeyBase58);
     const zkappPublicKey = PublicKey.fromBase58(networkConfig.BERKELEY.coinflipContract.publicKey);

@@ -63,6 +63,8 @@ export class MainContent extends React.Component<Props, State> {
 
     try {
       // @qcomps
+      // TODO: JB
+      // @ts-ignore
       await this.props.workerClient.deposit(1000, PrivateKey.fromBase58(process.env.USER_PRIV_KEY));
       this.refreshBalances()
     } catch (err) {
