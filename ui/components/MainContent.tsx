@@ -12,7 +12,6 @@ import { FormattedExternalState } from "./FormattedExternalState";
 interface Props {
   workerClient: ZkappWorkerClient;
   zkappPublicKey: PublicKey;
-  onUpdateNumCallback: (num: Field) => void;
   isLocal: boolean;
   userPrivateKey: PrivateKey;
 }

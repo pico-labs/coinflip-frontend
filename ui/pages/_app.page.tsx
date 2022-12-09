@@ -100,21 +100,6 @@ export default function App() {
     </div>
   );
 
-  let accountDoesNotExist;
-  if (state.hasBeenSetup && !state.userAccountExists) {
-    const faucetLink =
-      "https://faucet.minaprotocol.com/?address=" + state.publicKey!.toBase58();
-    accountDoesNotExist = (
-      <div>
-        Account does not exist. Please visit the faucet to fund this account
-        <a href={faucetLink} target="_blank" rel="noreferrer">
-          {" "}
-          [Link]{" "}
-        </a>
-      </div>
-    );
-  }
-
   const isLocal = NETWORK !== "BERKELEY";
   const inputPrivateKeyControls = (
     <div>
@@ -125,26 +110,40 @@ export default function App() {
 
   return (
     <div>
-      {inputPrivateKeyControls}
-      {setup}
-      {accountDoesNotExist}
+      <WithPadding>
+        {inputPrivateKeyControls}
+      </WithPadding>
+      <WithPadding>
+        {setup}
+      </WithPadding>
+      <WithPadding>
       {state.hasBeenSetup &&
         state.userAccountExists &&
         state.zkappWorkerClient &&
         state.zkappPublicKey &&
-        state.publicKey &&
         state.userInputPrivateKey && (
           <MainContent
             workerClient={state.zkappWorkerClient}
-            onUpdateNumCallback={() => {}}
             zkappPublicKey={state.zkappPublicKey}
             isLocal={isLocal}
             userPrivateKey={state.userInputPrivateKey}
           />
         )}
+      </WithPadding>
       <footer>
-        <h3>Your currently configured network is {NETWORK}</h3>
+        <WithPadding>
+          <h3>Your currently configured network is {NETWORK}</h3>
+        </WithPadding>
       </footer>
     </div>
   );
+}
+
+type JsFalsey = null | undefined | false | 0 | '';
+function WithPadding(props: {children: JSX.Element | Array<JSX.Element> | JsFalsey}) {
+  return (
+    <div style={{padding: '16px'}}>
+      {props.children}
+    </div>
+  )
 }
