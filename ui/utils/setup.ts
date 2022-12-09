@@ -46,7 +46,10 @@ async function setupAndDeriveState(
   currentAppState: AppState,
   config: BerkeleySetupConfig | LocalSetupConfig
 ): Promise<AppState> {
-  console.log("using user public key:", config.userPrivateKey.toPublicKey().toBase58());
+  console.log(
+    "using user public key:",
+    config.userPrivateKey.toPublicKey().toBase58()
+  );
 
   console.log("checking if user account exists...");
   // TODO: JB -- Right now, a non-existent account in Berkeley returns an error object, whereas for local, it throws.
@@ -81,7 +84,7 @@ async function setupAndDeriveState(
     hasBeenSetup: true,
     zkappPublicKey: config.zkappPublicKey,
     userAccountExists,
-    userInputPrivateKey: config.userPrivateKey
+    userInputPrivateKey: config.userPrivateKey,
   };
 }
 
@@ -105,7 +108,7 @@ async function generateConfig(
       zkappPrivateKey,
       zkappPublicKey: PublicKey.fromPrivateKey(zkappPrivateKey),
       isLocal: true,
-      userPrivateKey
+      userPrivateKey,
     };
   }
 }

@@ -36,7 +36,9 @@ export default function App() {
   useEffect(() => {
     (async () => {
       const { hasBeenSetup, userInputPrivateKey } = state;
-      const shouldRun = (!hasBeenSetup && userInputPrivateKey) || (NETWORK === 'LOCAL' && !hasBeenSetup);
+      const shouldRun =
+        (!hasBeenSetup && userInputPrivateKey) ||
+        (NETWORK === "LOCAL" && !hasBeenSetup);
       if (shouldRun) {
         const zkappWorkerClient = new ZkappWorkerClient();
 
@@ -89,12 +91,7 @@ export default function App() {
     : state.userInputPrivateKey
     ? "Setting up SnarkyJS..."
     : "Please enter your private key to proceed";
-  let setup = (
-    <div>
-      {" "}
-      {setupText}
-    </div>
-  );
+  let setup = <div> {setupText}</div>;
 
   const isLocal = NETWORK !== "BERKELEY";
   const inputPrivateKeyControls = (
@@ -106,25 +103,21 @@ export default function App() {
 
   return (
     <div>
+      <WithPadding>{inputPrivateKeyControls}</WithPadding>
+      <WithPadding>{setup}</WithPadding>
       <WithPadding>
-        {inputPrivateKeyControls}
-      </WithPadding>
-      <WithPadding>
-        {setup}
-      </WithPadding>
-      <WithPadding>
-      {state.hasBeenSetup &&
-        state.userAccountExists &&
-        state.zkappWorkerClient &&
-        state.zkappPublicKey &&
-        state.userInputPrivateKey && (
-          <MainContent
-            workerClient={state.zkappWorkerClient}
-            zkappPublicKey={state.zkappPublicKey}
-            isLocal={isLocal}
-            userPrivateKey={state.userInputPrivateKey}
-          />
-        )}
+        {state.hasBeenSetup &&
+          state.userAccountExists &&
+          state.zkappWorkerClient &&
+          state.zkappPublicKey &&
+          state.userInputPrivateKey && (
+            <MainContent
+              workerClient={state.zkappWorkerClient}
+              zkappPublicKey={state.zkappPublicKey}
+              isLocal={isLocal}
+              userPrivateKey={state.userInputPrivateKey}
+            />
+          )}
       </WithPadding>
       <footer>
         <WithPadding>
@@ -135,11 +128,9 @@ export default function App() {
   );
 }
 
-type JsFalsey = null | undefined | false | 0 | '';
-function WithPadding(props: {children: JSX.Element | Array<JSX.Element> | JsFalsey}) {
-  return (
-    <div style={{padding: '16px'}}>
-      {props.children}
-    </div>
-  )
+type JsFalsey = null | undefined | false | 0 | "";
+function WithPadding(props: {
+  children: JSX.Element | Array<JSX.Element> | JsFalsey;
+}) {
+  return <div style={{ padding: "16px" }}>{props.children}</div>;
 }

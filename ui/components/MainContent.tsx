@@ -118,7 +118,7 @@ export class MainContent extends React.Component<Props, State> {
         <button onClick={this.clearExternalData}>
           DELETE External State (be very careful!)
         </button>
-        <hr/>
+        <hr />
         {this.state.zkAppBalance ? (
           <Balance
             balance={this.state.zkAppBalance}
@@ -135,7 +135,7 @@ export class MainContent extends React.Component<Props, State> {
         ) : (
           <div>Loading user account...</div>
         )}
-        <hr/>
+        <hr />
         <h2>External state balances</h2>
         <FormattedExternalState values={this.state.externalState} />
       </div>
