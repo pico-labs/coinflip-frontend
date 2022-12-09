@@ -26,7 +26,7 @@ async function setMerkleValueExternally(publicKey: PublicKey, newBalance: number
   console.debug(`method name: setMerkleValueExternally`);
   const existingMapFromStorage = await getMerkleValuesExternally(isLocal);
   const updatedMap = existingMapFromStorage ? updateMap(existingMapFromStorage, publicKey, newBalance) : updateMap(null, publicKey, newBalance);
-  const networkKey = isLocal ? networkConfig.Local.coinflipContract.datastoreKey : networkConfig.Berkeley.coinflipContract.datastoreKey
+  const networkKey = isLocal ? networkConfig.BERKELEY.coinflipContract.datastoreKey : networkConfig.BERKELEY.coinflipContract.datastoreKey
   const url = `${BASE_URL}/set/${networkKey}`;
   console.debug(`DEV - setting state...`);
   const result = await fetch(url, {...HEADERS, method: 'POST', body: JSON.stringify(updatedMap)});
@@ -41,7 +41,7 @@ async function setMerkleValueExternally(publicKey: PublicKey, newBalance: number
 
 async function getMerkleValuesExternally(isLocal: boolean): Promise<null | ExternalMerkleState> {
   console.debug(`method name: getMerkleValuesExternally`);
-  const networkKey = isLocal ? networkConfig.Local.coinflipContract.datastoreKey : networkConfig.Berkeley.coinflipContract.datastoreKey
+  const networkKey = isLocal ? networkConfig.LOCAL.coinflipContract.datastoreKey : networkConfig.BERKELEY.coinflipContract.datastoreKey
   const url = `${BASE_URL}/get/${networkKey}`;
   const result = await fetch(url, {...HEADERS});
   const json  = (await result.json() as ServerResult);

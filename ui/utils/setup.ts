@@ -21,8 +21,12 @@ interface LocalSetupConfig extends BaseSetupConfig {
   isLocal: true;
 }
 
-async function setupNetwork(network: 'BERKELEY' | 'LOCAL', workerClient: ZkappWorkerClient, currentAppState: AppState): Promise<AppState> {
-  if (Object.keys(SUPPORTED_NETWORKS).includes(network)) {
+async function setupNetwork(network: string | undefined, workerClient: ZkappWorkerClient, currentAppState: AppState): Promise<AppState> {
+  if (!network) {
+    throw 'unexpected undefined network.'
+  }
+
+  if (network === 'BERKELEY' || network === 'LOCAL') {
     network === 'BERKELEY' ? await workerClient.setActiveInstanceToBerkeley() : await workerClient.setActiveInstanceToLocal();
     const config = await generateConfig(network, workerClient);
     return setupAndDeriveState(workerClient, currentAppState, config);
@@ -71,12 +75,10 @@ async function setupAndDeriveState(workerClient: ZkappWorkerClient, currentAppSt
 
 async function generateConfig(network: 'BERKELEY' | 'LOCAL', worker: ZkappWorkerClient): Promise<LocalSetupConfig | BerkeleySetupConfig> {
   if (network === SUPPORTED_NETWORKS.BERKELEY) {
-    // TODO: Allow user to input their private key and we can derive the public
-    //       At least for now, that will allow for rapid testing
     // @qcomps -- put public key here.
-    const userPublicKeyBase58 = 'B62qkJ4kUg4qkevbJwVZUpKgTre9dPai1i39Rf8BmpNe8w4yzNPNJCb';
+    const userPublicKeyBase58 = PrivateKey.fromBase58(process.env.USER_PRIV_KEY).toPublicKey().toBase58();
     const userPublicKey = PublicKey.fromBase58(userPublicKeyBase58);
-    const zkappPublicKey = PublicKey.fromBase58(networkConfig.Berkeley.coinflipContract.publicKey);
+    const zkappPublicKey = PublicKey.fromBase58(networkConfig.BERKELEY.coinflipContract.publicKey);
     return { userPublicKey, zkappPublicKey, isBerkeley: true };
   } else if (network === SUPPORTED_NETWORKS.LOCAL) {
     const zkappPrivateKey = await worker.getLocalAppPrivateKey();

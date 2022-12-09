@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
@@ -33,6 +35,10 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+  },
+  env: {
+    APP_NETWORK: process.env.APP_NETWORK,
+    USER_PRIV_KEY: process.env.USER_PRIV_KEY
   }
   // basePath: process.env.NODE_ENV === 'production' ? '/04-zkapp-browser-ui' : undefined, // update if your repo name changes for 'npm run deploy' to work successfully
   // assetPrefix: process.env.NODE_ENV === 'production' ? '/04-zkapp-browser-ui/' : undefined, // update if your repo name changes for 'npm run deploy' to work successfully

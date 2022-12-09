@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Field, PrivateKey, PublicKey } from 'snarkyjs';
 import ZkappWorkerClient from '../pages/zkappWorkerClient';
 import { clearState, ExternalMerkleState, getMerkleValuesExternally } from '../utils/datasource';
+import {OracleDataSource} from '../utils/OracleDataSource';
 import { Balance } from './AccountInfo';
 import { FormattedExternalState } from './FormattedExternalState';
 interface Props {
@@ -34,9 +35,11 @@ export class MainContent extends React.Component<Props, State> {
     }
   }
 
-  public componentDidMount() {
+  public async componentDidMount() {
     this.refreshBalances();
     this.loadExternalBalances();
+    const oracleResult = await OracleDataSource.get();
+    console.info(`logging the oracleResult from MainContent.tsx; here it is: ${JSON.stringify(oracleResult)}`)
   }
 
   private refreshBalances = async () => {
@@ -59,8 +62,8 @@ export class MainContent extends React.Component<Props, State> {
     const {userInputPrivateKey} = this.state;
 
     try {
-      // TODO: JB - this does not support multiple balance changes.
-      await this.props.workerClient.deposit(1000, PrivateKey.fromBase58(userInputPrivateKey));
+      // @qcomps
+      await this.props.workerClient.deposit(1000, PrivateKey.fromBase58(process.env.USER_PRIV_KEY));
       this.refreshBalances()
     } catch (err) {
       throw err;
