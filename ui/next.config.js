@@ -1,16 +1,16 @@
-require('dotenv').config();
+require("dotenv").config();
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
   swcMinify: true,
 
-  pageExtensions: ['page.tsx', 'page.ts', 'page.jsx', 'page.js'],
+  pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.js"],
   webpack(config) {
     config.resolve.alias = {
       ...config.resolve.alias,
-      snarkyjs: require('path').resolve('node_modules/snarkyjs'),
-    }
+      snarkyjs: require("path").resolve("node_modules/snarkyjs"),
+    };
     config.optimization.minimizer = [];
     return config;
   },
@@ -19,15 +19,15 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/(.*)',
+        source: "/(.*)",
         headers: [
           {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin',
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin",
           },
           {
-            key: 'Cross-Origin-Embedder-Policy',
-            value: 'require-corp',
+            key: "Cross-Origin-Embedder-Policy",
+            value: "require-corp",
           },
         ],
       },
@@ -38,10 +38,8 @@ const nextConfig = {
   },
   env: {
     APP_NETWORK: process.env.APP_NETWORK,
-    USER_PRIV_KEY: process.env.USER_PRIV_KEY
-  }
-  // basePath: process.env.NODE_ENV === 'production' ? '/04-zkapp-browser-ui' : undefined, // update if your repo name changes for 'npm run deploy' to work successfully
-  // assetPrefix: process.env.NODE_ENV === 'production' ? '/04-zkapp-browser-ui/' : undefined, // update if your repo name changes for 'npm run deploy' to work successfully
+    USER_PRIV_KEY: process.env.USER_PRIV_KEY,
+  },
 };
 
-module.exports = nextConfig
+module.exports = nextConfig;

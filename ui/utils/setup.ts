@@ -1,15 +1,11 @@
-import { PrivateKey, PublicKey } from 'snarkyjs';
-import { AppState } from '../pages/_app.page';
-import ZkappWorkerClient from '../pages/zkappWorkerClient';
-import { networkConfig, SUPPORTED_NETWORKS } from './constants';
-
-export interface MinaBrowserClient {
-  requestAccounts: () => Promise<Array<string>>
-}
+import { PrivateKey, PublicKey } from "snarkyjs";
+import { AppState } from "../pages/_app.page";
+import ZkappWorkerClient from "../pages/zkappWorkerClient";
+import { networkConfig, SUPPORTED_NETWORKS } from "./constants";
 
 interface BaseSetupConfig {
-  userPublicKey: PublicKey;
   zkappPublicKey: PublicKey;
+  userPrivateKey: PrivateKey;
 }
 
 interface BerkeleySetupConfig extends BaseSetupConfig {
@@ -17,86 +13,110 @@ interface BerkeleySetupConfig extends BaseSetupConfig {
 }
 
 interface LocalSetupConfig extends BaseSetupConfig {
-  zkappPrivateKey: PrivateKey
+  zkappPrivateKey: PrivateKey;
   isLocal: true;
 }
 
-async function setupNetwork(network: string | undefined, workerClient: ZkappWorkerClient, currentAppState: AppState): Promise<AppState> {
-  if (!network) {
-    throw 'unexpected undefined network.'
-  }
-
-  if (network === 'BERKELEY' || network === 'LOCAL') {
-    network === 'BERKELEY' ? await workerClient.setActiveInstanceToBerkeley() : await workerClient.setActiveInstanceToLocal();
-    const config = await generateConfig(network, workerClient);
+async function setupNetwork(
+  network: "BERKELEY" | "LOCAL",
+  workerClient: ZkappWorkerClient,
+  currentAppState: AppState
+): Promise<AppState> {
+  if (network === "BERKELEY") {
+    await workerClient.setActiveInstanceToBerkeley();
+    const config = await generateConfig(
+      network,
+      workerClient,
+      currentAppState.userInputPrivateKey
+    );
     return setupAndDeriveState(workerClient, currentAppState, config);
   } else {
-    throw 'only berkeley and local are supported';
+    await workerClient.setActiveInstanceToLocal();
+    const config = await generateConfig(
+      network,
+      workerClient,
+      currentAppState.userInputPrivateKey
+    );
+    return setupAndDeriveState(workerClient, currentAppState, config);
   }
 }
 
-async function setupAndDeriveState(workerClient: ZkappWorkerClient, currentAppState: AppState, config: BerkeleySetupConfig | LocalSetupConfig): Promise<AppState> {
-  console.log('using user public key:', config.userPublicKey.toBase58());
+async function setupAndDeriveState(
+  workerClient: ZkappWorkerClient,
+  currentAppState: AppState,
+  config: BerkeleySetupConfig | LocalSetupConfig
+): Promise<AppState> {
+  console.log(
+    "using user public key:",
+    config.userPrivateKey.toPublicKey().toBase58()
+  );
 
-  console.log('checking if user account exists...');
+  console.log("checking if user account exists...");
   // TODO: JB -- Right now, a non-existent account in Berkeley returns an error object, whereas for local, it throws.
-  const res = await workerClient.fetchAccount({ publicKey: config.userPublicKey });
+  const res = await workerClient.fetchAccount({
+    publicKey: config.userPrivateKey.toPublicKey(),
+  });
   const userAccountExists = !res.error;
 
   await workerClient.loadContract();
 
-  console.log('compiling zkApp');
+  console.log("compiling zkApp");
   await workerClient.compileContract();
-  console.log('zkApp compiled');
+  console.log("zkApp compiled");
 
   if (isBerkeleyConfig(config)) {
     await workerClient.initZkappInstance(config.zkappPublicKey);
   } else {
     const localUserPrivateKey = await workerClient.getLocalPrivateKey();
-    await workerClient.initLocalZkappInstance(localUserPrivateKey, config.zkappPrivateKey);
+    await workerClient.initLocalZkappInstance(
+      localUserPrivateKey,
+      config.zkappPrivateKey
+    );
   }
 
-  console.log('getting zkApp state...');
+  console.log("getting zkApp state...");
   await workerClient.fetchAccount({ publicKey: config.zkappPublicKey });
-  const currentNum = await workerClient.getNum();
-  console.log('current state:', currentNum.toString());
 
   return {
     ...currentAppState,
     zkappWorkerClient: workerClient,
-    hasWallet: true,
+    hasWallet: false,
     hasBeenSetup: true,
-    publicKey: config.userPublicKey,
     zkappPublicKey: config.zkappPublicKey,
     userAccountExists,
-    currentNum
-  }
+    userInputPrivateKey: config.userPrivateKey,
+  };
 }
 
-async function generateConfig(network: 'BERKELEY' | 'LOCAL', worker: ZkappWorkerClient): Promise<LocalSetupConfig | BerkeleySetupConfig> {
+async function generateConfig(
+  network: "BERKELEY" | "LOCAL",
+  worker: ZkappWorkerClient,
+  userPrivateKey?: PrivateKey
+): Promise<LocalSetupConfig | BerkeleySetupConfig> {
   if (network === SUPPORTED_NETWORKS.BERKELEY) {
-    // @qcomps -- put public key here.
-    // TODO: JB
-    // @ts-ignore
-    const userPublicKeyBase58 = PrivateKey.fromBase58(process.env.USER_PRIV_KEY).toPublicKey().toBase58();
-    const userPublicKey = PublicKey.fromBase58(userPublicKeyBase58);
-    const zkappPublicKey = PublicKey.fromBase58(networkConfig.BERKELEY.coinflipContract.publicKey);
-    return { userPublicKey, zkappPublicKey, isBerkeley: true };
-  } else if (network === SUPPORTED_NETWORKS.LOCAL) {
+    if (!userPrivateKey) {
+      throw "private key must be provided in Berkeley";
+    }
+    const zkappPublicKey = PublicKey.fromBase58(
+      networkConfig.BERKELEY.coinflipContract.publicKey
+    );
+    return { zkappPublicKey, isBerkeley: true, userPrivateKey };
+  } else {
     const zkappPrivateKey = await worker.getLocalAppPrivateKey();
+    const userPrivateKey = await worker.getLocalPrivateKey();
     return {
-      userPublicKey: PublicKey.fromPrivateKey(await worker.getLocalPrivateKey()),
       zkappPrivateKey,
       zkappPublicKey: PublicKey.fromPrivateKey(zkappPrivateKey),
-      isLocal: true
-    }
-  } else {
-    throw 'only berkeley and local are supported';
+      isLocal: true,
+      userPrivateKey,
+    };
   }
 }
 
-function isBerkeleyConfig(config: BerkeleySetupConfig | LocalSetupConfig): config is BerkeleySetupConfig {
-  return 'isBerkeley' in config;
+function isBerkeleyConfig(
+  config: BerkeleySetupConfig | LocalSetupConfig
+): config is BerkeleySetupConfig {
+  return "isBerkeley" in config;
 }
 
-export { setupNetwork }
+export { setupNetwork };

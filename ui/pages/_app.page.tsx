@@ -1,29 +1,26 @@
-import '../styles/globals.css'
+import "../styles/globals.css";
+import * as React from "react";
 import { useEffect, useState } from "react";
-import './reactCOIServiceWorker';
-import { MainContent } from '../components/MainContent';
-import {networkConfig} from '../utils/constants';
-import {setupNetwork} from '../utils/setup';
+import "./reactCOIServiceWorker";
+import { MainContent } from "../components/MainContent";
+import { networkConfig } from "../utils/constants";
+import { setupNetwork } from "../utils/setup";
 
-import ZkappWorkerClient from './zkappWorkerClient';
+import ZkappWorkerClient from "./zkappWorkerClient";
 
-import {
-  PublicKey,
-  Field,
-} from 'snarkyjs'
+import { PublicKey, Field, PrivateKey } from "snarkyjs";
 
 export interface AppState {
-  zkappWorkerClient: null | ZkappWorkerClient,
-  hasWallet: null | boolean,
-  hasBeenSetup: boolean,
-  userAccountExists: boolean,
-  currentNum: Field | null,
-  publicKey: PublicKey | null,
-  zkappPublicKey: PublicKey | null,
-  creatingTransaction: boolean
+  zkappWorkerClient: null | ZkappWorkerClient;
+  hasWallet: null | boolean;
+  hasBeenSetup: boolean;
+  userAccountExists: boolean;
+  zkappPublicKey: PublicKey | null;
+  creatingTransaction: boolean;
+  userInputPrivateKey?: PrivateKey;
 }
 
-const NETWORK = networkConfig.currentNetwork
+const NETWORK = networkConfig.currentNetwork;
 
 export default function App() {
   let [state, setState] = useState<AppState>({
@@ -31,33 +28,45 @@ export default function App() {
     hasWallet: null as null | boolean,
     hasBeenSetup: false,
     userAccountExists: false,
-    currentNum: null as null | Field,
-    publicKey: null as null | PublicKey,
     zkappPublicKey: null as null | PublicKey,
     creatingTransaction: false,
+    userInputPrivateKey: undefined,
   });
 
   useEffect(() => {
     (async () => {
-      if (!state.hasBeenSetup) {
+      const { hasBeenSetup, userInputPrivateKey } = state;
+      const shouldRun =
+        (!hasBeenSetup && userInputPrivateKey) ||
+        (NETWORK === "LOCAL" && !hasBeenSetup);
+      if (shouldRun) {
         const zkappWorkerClient = new ZkappWorkerClient();
 
-        console.log('Loading SnarkyJS...');
+        console.log("Loading SnarkyJS...");
         await zkappWorkerClient.loadSnarkyJS();
-        console.log('done');
 
-        const setupState = await setupNetwork(NETWORK, zkappWorkerClient, state);
-        setState({ ...setupState });
+        if (NETWORK === "BERKELEY" || NETWORK === "LOCAL") {
+          const setupState = await setupNetwork(
+            NETWORK,
+            zkappWorkerClient,
+            state
+          );
+          setState({ ...setupState });
+        } else {
+          throw `Network: ${NETWORK} not supported`;
+        }
       }
     })();
-  }, []);
+  }, [state.userInputPrivateKey]);
 
   useEffect(() => {
     (async () => {
       if (state.hasBeenSetup && !state.userAccountExists) {
-        for (; ;) {
-          console.log('checking if account exists...');
-          const res = await state.zkappWorkerClient!.fetchAccount({ publicKey: state.publicKey! })
+        for (;;) {
+          console.log("checking if account exists...");
+          const res = await state.zkappWorkerClient!.fetchAccount({
+            publicKey: state.userInputPrivateKey!.toPublicKey(),
+          });
           const accountExists = res.error == null;
           if (accountExists) {
             break;
@@ -69,47 +78,59 @@ export default function App() {
     })();
   }, [state.hasBeenSetup]);
 
+  function handleInputValueChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const privateKey = PrivateKey.fromBase58(e.currentTarget.value);
+    setState({ ...state, userInputPrivateKey: privateKey });
+  }
+
   // -------------------------------------------------------
   // Send a transaction
 
-  let hasWallet;
-  if (state.hasWallet != null && !state.hasWallet) {
-    const auroLink = 'https://www.aurowallet.com/';
-    const auroLinkElem = <a href={auroLink} target="_blank" rel="noreferrer"> [Link] </a>
-    hasWallet = <div> Could not find a wallet. Install Auro wallet here: {auroLinkElem}</div>
-  }
+  let setupText = state.hasBeenSetup
+    ? "SnarkyJS Ready"
+    : state.userInputPrivateKey
+    ? "Setting up SnarkyJS..."
+    : "Please enter your private key to proceed";
+  let setup = <div> {setupText}</div>;
 
-  let setupText = state.hasBeenSetup ? 'SnarkyJS Ready' : 'Setting up SnarkyJS...';
-  let setup = <div> {setupText} {hasWallet}</div>
-
-  let accountDoesNotExist;
-  if (state.hasBeenSetup && !state.userAccountExists) {
-    const faucetLink = "https://faucet.minaprotocol.com/?address=" + state.publicKey!.toBase58();
-    accountDoesNotExist = <div>
-      Account does not exist. Please visit the faucet to fund this account
-      <a href={faucetLink} target="_blank" rel="noreferrer"> [Link] </a>
+  const isLocal = NETWORK !== "BERKELEY";
+  const inputPrivateKeyControls = (
+    <div>
+      <label>Enter private key</label>
+      <input onChange={handleInputValueChange} />
     </div>
-  }
+  );
 
-  // TODO: JB
-  // @ts-ignore
-  const isLocal = NETWORK !== 'BERKELEY';
   return (
     <div>
-      { setup }
-      { accountDoesNotExist }
-      {state.hasBeenSetup && state.userAccountExists && state.zkappWorkerClient && state.zkappPublicKey && state.publicKey
-        && <MainContent
-          workerClient={state.zkappWorkerClient}
-          onUpdateNumCallback={() => {}}
-          zkappPublicKey={state.zkappPublicKey}
-          userPublicKey={state.publicKey}
-          isLocal={isLocal}
-        />
-      }
+      <WithPadding>{inputPrivateKeyControls}</WithPadding>
+      <WithPadding>{setup}</WithPadding>
+      <WithPadding>
+        {state.hasBeenSetup &&
+          state.userAccountExists &&
+          state.zkappWorkerClient &&
+          state.zkappPublicKey &&
+          state.userInputPrivateKey && (
+            <MainContent
+              workerClient={state.zkappWorkerClient}
+              zkappPublicKey={state.zkappPublicKey}
+              isLocal={isLocal}
+              userPrivateKey={state.userInputPrivateKey}
+            />
+          )}
+      </WithPadding>
       <footer>
-        <h3>Your currently configured network is {NETWORK}</h3>
+        <WithPadding>
+          <h3>Your currently configured network is {NETWORK}</h3>
+        </WithPadding>
       </footer>
     </div>
   );
+}
+
+type JsFalsey = null | undefined | false | 0 | "";
+function WithPadding(props: {
+  children: JSX.Element | Array<JSX.Element> | JsFalsey;
+}) {
+  return <div style={{ padding: "16px" }}>{props.children}</div>;
 }
