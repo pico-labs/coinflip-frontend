@@ -1,4 +1,5 @@
 import '../styles/globals.css'
+import * as React from 'react';
 import { useEffect, useState } from "react";
 import './reactCOIServiceWorker';
 import { MainContent } from '../components/MainContent';
@@ -9,7 +10,7 @@ import ZkappWorkerClient from './zkappWorkerClient';
 
 import {
   PublicKey,
-  Field,
+  Field, PrivateKey,
 } from 'snarkyjs'
 
 export interface AppState {
@@ -21,6 +22,7 @@ export interface AppState {
   publicKey: PublicKey | null,
   zkappPublicKey: PublicKey | null,
   creatingTransaction: boolean
+  userInputPrivateKey?: PrivateKey
 }
 
 const NETWORK = networkConfig.currentNetwork
@@ -35,22 +37,27 @@ export default function App() {
     publicKey: null as null | PublicKey,
     zkappPublicKey: null as null | PublicKey,
     creatingTransaction: false,
+    userInputPrivateKey: undefined
   });
 
   useEffect(() => {
     (async () => {
-      if (!state.hasBeenSetup) {
+      const {hasBeenSetup, userInputPrivateKey} = state;
+      if (!hasBeenSetup && userInputPrivateKey) {
         const zkappWorkerClient = new ZkappWorkerClient();
 
         console.log('Loading SnarkyJS...');
         await zkappWorkerClient.loadSnarkyJS();
-        console.log('done');
 
-        const setupState = await setupNetwork(NETWORK, zkappWorkerClient, state);
-        setState({ ...setupState });
+        if (NETWORK === 'BERKELEY' || NETWORK === 'LOCAL') {
+          const setupState = await setupNetwork(NETWORK, zkappWorkerClient, state);
+          setState({ ...setupState });
+        } else {
+          throw `Network: ${NETWORK} not supported`;
+        }
       }
     })();
-  }, []);
+  }, [state.userInputPrivateKey]);
 
   useEffect(() => {
     (async () => {
@@ -69,6 +76,12 @@ export default function App() {
     })();
   }, [state.hasBeenSetup]);
 
+  function handleInputValueChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const privateKey = PrivateKey.fromBase58(e.currentTarget.value);
+    const publicKey = privateKey.toPublicKey();
+    setState({...state, userInputPrivateKey: privateKey, publicKey});
+  }
+
   // -------------------------------------------------------
   // Send a transaction
 
@@ -79,7 +92,9 @@ export default function App() {
     hasWallet = <div> Could not find a wallet. Install Auro wallet here: {auroLinkElem}</div>
   }
 
-  let setupText = state.hasBeenSetup ? 'SnarkyJS Ready' : 'Setting up SnarkyJS...';
+  let setupText = state.hasBeenSetup ? 'SnarkyJS Ready' : (
+    state.userInputPrivateKey ? 'Setting up SnarkyJS...' : 'Please enter your private key to proceed'
+  );
   let setup = <div> {setupText} {hasWallet}</div>
 
   let accountDoesNotExist;
@@ -91,20 +106,26 @@ export default function App() {
     </div>
   }
 
-  // TODO: JB
-  // @ts-ignore
   const isLocal = NETWORK !== 'BERKELEY';
+  const inputPrivateKeyControls = (
+    <div>
+      <label>Enter private key</label>
+      <input onChange={handleInputValueChange}/>
+    </div>
+  )
+
   return (
     <div>
+      { inputPrivateKeyControls }
       { setup }
       { accountDoesNotExist }
-      {state.hasBeenSetup && state.userAccountExists && state.zkappWorkerClient && state.zkappPublicKey && state.publicKey
+      {state.hasBeenSetup && state.userAccountExists && state.zkappWorkerClient && state.zkappPublicKey && state.publicKey && state.userInputPrivateKey
         && <MainContent
           workerClient={state.zkappWorkerClient}
           onUpdateNumCallback={() => {}}
           zkappPublicKey={state.zkappPublicKey}
-          userPublicKey={state.publicKey}
           isLocal={isLocal}
+          userPrivateKey={state.userInputPrivateKey}
         />
       }
       <footer>

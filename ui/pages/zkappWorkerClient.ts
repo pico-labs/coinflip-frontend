@@ -35,10 +35,7 @@ export default class ZkappWorkerClient {
   async getLocalPrivateKey(): Promise<PrivateKey> {
     const privateKey58 = await this._call('getLocalPrivateKey', {});
     assertIsString(privateKey58);
-    // @qcomps - paste and return private key here.
-    // TODO: JB
-    // @ts-ignore
-    return PrivateKey.fromBase58(process.env.USER_PRIV_KEY)
+    return PrivateKey.fromBase58(privateKey58);
   }
   async getLocalAppPrivateKey(): Promise<PrivateKey> {
     const privateKey58 = await this._call('getLocalAppPrivateKey', {});
