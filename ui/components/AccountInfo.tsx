@@ -9,5 +9,5 @@ export function Balance(props: BalanceProps) {
       <h3>{props.label}</h3>
       <p>{balance}</p>
     </div>
-  )
+  );
 }

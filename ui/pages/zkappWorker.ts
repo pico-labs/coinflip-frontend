@@ -1,14 +1,18 @@
+import { Executor } from "coinflip-executor-contract";
 import {
   Mina,
   isReady,
   PublicKey,
-  fetchAccount, PrivateKey, AccountUpdate, Poseidon, MerkleMap, Field,
-} from 'snarkyjs'
-type Account = {} // TODO: JB
+  fetchAccount,
+  PrivateKey,
+  AccountUpdate,
+  Poseidon,
+  MerkleMap,
+  Field,
+} from "snarkyjs";
+type Account = {}; // TODO: JB
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
-import type { Executor } from 'coinflip-executor-contract/build/src/executor';
 import { getMerkleValuesExternally, setMerkleValueExternally } from '../utils/datasource';
-import { initializeMap } from '../utils/merkle';
 import { assertIsMerkleMap } from '../utils/shared-functions';
 
 const MINA_FEE = 100_000_000;
@@ -76,8 +80,8 @@ const functions = {
     state.localAppPrivateKey = PrivateKey.random();
   },
   loadContract: async (_args: {}) => {
-    const { Executor } = await import('coinflip-executor-contract/build/src/executor');
-    assertsIsSpecifiedContract<Executor>(Executor, 'Executor');
+    const { Executor } = await import("coinflip-executor-contract");
+    assertsIsSpecifiedContract<Executor>(Executor, "Executor");
     state.Executor = Executor;
   },
   compileContract: async (_args: {}) => {
@@ -111,7 +115,7 @@ const functions = {
     }
   },
   initZkappInstance: async (args: { publicKey58: string }) => {
-    assertsIsSpecifiedContract<Executor>(state.Executor, 'Executor');
+    assertsIsSpecifiedContract<Executor>(state.Executor, "Executor");
     const publicKey = PublicKey.fromBase58(args.publicKey58);
     state.zkapp = new state.Executor(publicKey);
 
@@ -149,40 +153,6 @@ const functions = {
       console.debug(`DEV - Success! account funded, deployed, initialized`);
     }
   },
-  // TODO: JB
-  getNum: async (_args: {}) => {
-    // const currentNum = await state.zkapp!.num.get();
-    // return JSON.stringify(currentNum.toJSON());
-    return JSON.stringify(999);
-  },
-  // TODO: JB handle for executor state
-  createUpdateTransaction: async (_args: {}) => {
-    const transaction = await Mina.transaction(() => {
-      // TODO: JB
-      // @ts-ignore
-      state.zkapp!.update();
-    }
-    );
-    state.transaction = transaction;
-  },
-
-  // TODO: JB - Handle for executor
-  createLocalUpdateTransaction: async (args: { userPrivateKey58: string }) => {
-    const feePayerKey = PrivateKey.fromBase58(args.userPrivateKey58);
-    const transaction = await Mina.transaction({ feePayerKey, fee: MINA_FEE }, () => {
-      // TODO: JB
-      // @ts-ignore
-      state.zkapp!.update();
-    }
-    );
-    state.transaction = transaction;
-  },
-  proveUpdateTransaction: async (_args: {}) => {
-    await state.transaction!.prove();
-  },
-  getTransactionJSON: async (_args: {}) => {
-    return state.transaction!.toJSON();
-  },
   getLocalPrivateKey: async (_args: {}) => {
     return state.testAccounts![0].privateKey.toBase58();
   },
@@ -193,11 +163,10 @@ const functions = {
       throw 'This operation is only supported on local and with a private key initialized; are you on the right network?';
     }
   },
-  sendLocalTransaction: async (_args: {}) => {
-    const res = await Mina.sendTransaction(state.transaction!)
-    return res.hash();
-  },
-  deposit: async (args: { depositAmount: number, userPrivateKey58: string }) => {
+  deposit: async (args: {
+    depositAmount: number;
+    userPrivateKey58: string;
+  }) => {
     assertIsMerkleMap(state.map);
     const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
     const userPublicKey = PublicKey.fromPrivateKey(userPrivateKey);

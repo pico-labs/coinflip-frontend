@@ -1,5 +1,4 @@
 import {Field, MerkleMap, Poseidon, PublicKey} from 'snarkyjs';
-import {networkConfig} from './constants';
 
 const BASE_URL = `https://global-nice-gopher-30365.upstash.io`
 const HEADERS = {
@@ -100,4 +99,4 @@ function generateHeaders() {
 }
 
 
-export {getMerkleValuesExternally, setMerkleValueExternally, clearState};
+export {getMerkleValuesExternally, setMerkleValueExternally, clearState, deserializeMap, serializeMap};
