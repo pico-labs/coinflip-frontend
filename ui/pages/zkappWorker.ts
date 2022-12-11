@@ -139,10 +139,15 @@ const functions = {
 
   // TODO: JB - This only works with Berkeley for now because fetchAccount requires network.
   loadAccountRootHashes: async (args: {contractKey58: string, userKey58: string}): Promise<LoadRootHashesResult> => {
-    const upToDateContractAccount = await fetchAccount({publicKey: PublicKey.fromBase58(args.contractKey58)});
-    const userRootHash = state.map?.getRoot().toString();
-    if (upToDateContractAccount.account?.appState) {
-      const contractRootHash = upToDateContractAccount.account.appState[0].toString();
+    let upToDateContractAccount: Account;
+    try {
+      upToDateContractAccount = await (await fetchAccount({publicKey: PublicKey.fromBase58(args.contractKey58)})).account!;
+    } catch(e) {
+      upToDateContractAccount = Mina.getAccount(PublicKey.fromBase58(args.contractKey58));
+    }
+    if (upToDateContractAccount.appState) {
+      const contractRootHash = upToDateContractAccount.appState[0].toString();
+      const userRootHash = state.map?.getRoot().toString();
       return {contractRoot: contractRootHash, userRoot: userRootHash };
     } else {
       throw 'expected contract root hash to be defined.';
