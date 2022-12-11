@@ -10,7 +10,15 @@ import {
   MerkleMap,
   Field,
 } from "snarkyjs";
-type Account = {}; // TODO: JB
+type Account = {
+  appState?: Field[]
+}; // TODO: JB
+
+export interface LoadRootHashesResult {
+  contractRoot: string;
+  userRoot?: string;
+}
+
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 import { getMerkleValuesExternally, setMerkleValueExternally } from '../utils/datasource';
 import { assertIsMerkleMap } from '../utils/shared-functions';
@@ -128,6 +136,18 @@ const functions = {
     state.map = externalMapState[0];
     state.merkleKeys = externalMapState[1];
   },
+
+  // TODO: JB - This only works with Berkeley for now because fetchAccount requires network.
+  loadAccountRootHashes: async (args: {contractKey58: string, userKey58: string}): Promise<LoadRootHashesResult> => {
+    const upToDateContractAccount = await fetchAccount({publicKey: PublicKey.fromBase58(args.contractKey58)});
+    const userRootHash = state.map?.getRoot().toString();
+    if (upToDateContractAccount.account?.appState) {
+      const contractRootHash = upToDateContractAccount.account.appState[0].toString();
+      return {contractRoot: contractRootHash, userRoot: userRootHash };
+    } else {
+      throw 'expected contract root hash to be defined.';
+    }
+  },
   initLocalZkappInstance: async (args: { userPrivateKey58: string, appPrivateKey58: string }) => {
     assertsIsSpecifiedContract<Executor>(state.Executor, 'Executor');
     const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
@@ -225,7 +245,19 @@ const functions = {
     // from CD: after a successful withdrawal, we set to 0.
     state.map.set(key, Field(0));
     await setMerkleValueExternally(state.contractRootHash, userPublicKey, 0)
-  }
+  },
+  // TODO: JB - Delete
+  // resetContract: async (args: {publicKey58: string}): Promise<string> => {
+  //   const publicKey = PublicKey.fromBase58(args.publicKey58);
+  //   const appState = await fetchAccount({ publicKey });
+  //   console.log(`App State: ${appState}`)
+  //   const stateRootHash = appState.account!.appState![0];
+  //   state.contractRootHash = stateRootHash.toString();
+  //   const externalMapState = await getMerkleValuesExternally(state.contractRootHash);
+  //   state.map = externalMapState[0];
+  //   state.merkleKeys = externalMapState[1];
+  //   return state.contractRootHash;
+  // }
 };
 
 // ---------------------------------------------------------------------------------------

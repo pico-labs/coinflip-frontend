@@ -1,6 +1,6 @@
 import { PublicKey, PrivateKey } from "snarkyjs";
 import {
-  assertIsFetchResult,
+  assertIsFetchResult, assertIsLoadRootHashesResult,
   assertIsString,
   assertIsStringArray,
 } from "../utils/shared-functions";
@@ -9,7 +9,7 @@ import type {
   ZkappWorkerRequest,
   ZkappWorkerReponse,
   WorkerFunctions,
-  FetchResult,
+  FetchResult, LoadRootHashesResult,
 } from "./zkappWorker";
 
 export default class ZkappWorkerClient {
@@ -26,14 +26,24 @@ export default class ZkappWorkerClient {
     return result;
   }
 
-  // async getStateRootHash(): Promise<string> {
-  //   console.log(`method name: getStateRootHash`);
-  //   const result = await this._call('getStateRootHash', {});
-  //   console.info(result);
+  // TODO: JB - Delete
+  // async resetContract(contractPublicKey: PublicKey): Promise<string> {
+  //   console.log(`resetContract - ${''}`);
+  //   const args = {publicKey58: contractPublicKey.toBase58()};
+  //   const result = await this._call('resetContract', args);
   //   assertIsString(result);
-  //   return result;
+  //   console.info(`got new root hash: ${result}`);
+  //   return result
   // }
 
+  async loadAccountRootHashes(contractPublicKey: PublicKey, userPublicKey: PublicKey): Promise<LoadRootHashesResult> {
+    const result: unknown = await this._call('loadAccountRootHashes', {
+      contractKey58: contractPublicKey.toBase58(),
+      userKey58: userPublicKey.toBase58()
+    });
+    assertIsLoadRootHashesResult(result);
+    return result;
+  }
   setActiveInstanceToBerkeley() {
     return this._call("setActiveInstanceToBerkeley", {});
   }

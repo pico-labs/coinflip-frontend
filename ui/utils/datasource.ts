@@ -45,6 +45,8 @@ async function getMerkleValuesExternally(stateRootHash: string): Promise<[Merkle
   const result = await fetch(url, {...HEADERS});
   const json  = (await result.json() as ServerResult);
   if (json.result) {
+    console.info('getMerkleValuesExternally json here:');
+    console.info(json);
     const jsonState = parseResult(json)
     const state = serializeMap(jsonState);
     console.debug(`DEV - reading state from get: ${jsonState}`)
@@ -74,7 +76,7 @@ function serializeMap(externalState: ExternalMerkleState): [MerkleMap, Set<Field
 function deserializeMap(internalState: MerkleMap, keys: Set<Field>): ExternalMerkleState {
   console.debug(`method name: deserializeMap`);
   const deserialized: ExternalMerkleState = {};
-  
+
   keys.forEach((key) => {
     console.debug(`Key: ${key.toString()}: ${internalState.get(key).toString()}`)
     deserialized[key.toString()] = internalState.get(key).toString();
@@ -99,4 +101,12 @@ function generateHeaders() {
 }
 
 
-export {getMerkleValuesExternally, setMerkleValueExternally, clearState, deserializeMap, serializeMap};
+function computeMerkleKeyAndValue(externalState: ExternalMerkleState, publicKey: PublicKey): {key: string, value: string | undefined} {
+  const key = Poseidon.hash(publicKey.toFields()).toString();
+  const value = externalState[key]
+  const result = {key, value};
+  return result;
+}
+
+
+export {getMerkleValuesExternally, setMerkleValueExternally, clearState, deserializeMap, serializeMap, computeMerkleKeyAndValue};

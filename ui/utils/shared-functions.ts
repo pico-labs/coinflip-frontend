@@ -1,5 +1,5 @@
 import { MerkleMap } from "snarkyjs";
-import { FetchError, FetchResult, FetchSuccess } from "../pages/zkappWorker";
+import {FetchError, FetchResult, FetchSuccess, LoadRootHashesResult} from "../pages/zkappWorker";
 
 function assertIsString(value: unknown): asserts value is string {
   if (typeof value !== "string") {
@@ -51,9 +51,17 @@ function assertIsMerkleMap(value: unknown): asserts value is MerkleMap {
   }
 }
 
+function assertIsLoadRootHashesResult(value: unknown): asserts value is LoadRootHashesResult {
+  const castValue = value as LoadRootHashesResult;
+  if (!castValue.contractRoot) {
+    throw 'contract root must be defined';
+  }
+}
+
 export {
   assertIsString,
   assertIsFetchResult,
   assertIsStringArray,
   assertIsMerkleMap,
+  assertIsLoadRootHashesResult
 };
