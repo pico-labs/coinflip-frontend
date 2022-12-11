@@ -15,7 +15,8 @@ export function FormattedExternalState(props: FormattedExternalStateProps) {
         return (
           <div key={tuple[0]}>
             <h4>Address: {tuple[0]}</h4>
-            <p>Balance: {tuple[1].balance}</p>
+            <p>Balance: JB - TODO get these loaded and resolved</p>
+            {/*<p>Balance: {tuple[1].balance}</p>*/}
           </div>
         );
       })}

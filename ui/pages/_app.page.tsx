@@ -110,7 +110,8 @@ export default function App() {
           state.userAccountExists &&
           state.zkappWorkerClient &&
           state.zkappPublicKey &&
-          state.userInputPrivateKey && (
+          state.userInputPrivateKey &&
+          (
             <MainContent
               workerClient={state.zkappWorkerClient}
               zkappPublicKey={state.zkappPublicKey}

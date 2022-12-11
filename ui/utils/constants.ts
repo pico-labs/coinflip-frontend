@@ -2,11 +2,11 @@ const networkConfig = {
   currentNetwork: process.env.APP_NETWORK,
   BERKELEY: {
     coinflipContract: {
-      publicKey: "B62qiTeKV99ugy2JpAV1wGJ7cPGaUBBohH8MPjjGCVFdFexVmVyARHb",
-      datastoreKey: "berkeley-state",
+      publicKey: 'B62qjAwNeTb4YqpaNwrLmCporHJ2jRiq5xYuVdGpmwq94cke2FQtVQG',
+      datastoreKey: 'berkeley-state',
     },
     oracleUrl:
-      "https://randomness-oracle-ah5yo4vyg-pico-labs.vercel.app/api/randomNumber",
+      "https://randomness-oracle-ah5yo4vyg-pico-labs.vercel.app/api/randomNumber"
   },
   LOCAL: {
     coinflipContract: {
