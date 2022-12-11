@@ -1,14 +1,10 @@
 import * as React from "react";
-import { Field, PrivateKey, PublicKey } from "snarkyjs";
+import { PrivateKey, PublicKey} from "snarkyjs";
 import ZkappWorkerClient from "../pages/zkappWorkerClient";
-import {
-  clearState,
-  ExternalMerkleState,
-  getMerkleValuesExternally,
-} from "../utils/datasource";
+import {clearState} from "../utils/datasource";
 import { OracleDataSource } from "../utils/OracleDataSource";
+import {rootHashToUiInfo, UiInfo} from '../utils/ui-formatting';
 import { Balance } from "./AccountInfo";
-import { FormattedExternalState } from "./FormattedExternalState";
 interface Props {
   workerClient: ZkappWorkerClient;
   zkappPublicKey: PublicKey;
@@ -19,9 +15,9 @@ interface Props {
 interface State {
   zkAppBalance?: string;
   userBalance?: string;
-  awaitingDeposit: boolean;
-  awaitingWithdraw: boolean;
-  externalState: ExternalMerkleState | null;
+  awaiting: boolean;
+  appState: UiInfo | undefined;
+  userState: UiInfo | undefined
 }
 
 export class MainContent extends React.Component<Props, State> {
@@ -30,15 +26,15 @@ export class MainContent extends React.Component<Props, State> {
     this.state = {
       zkAppBalance: undefined,
       userBalance: undefined,
-      awaitingDeposit: false,
-      awaitingWithdraw: false,
-      externalState: null,
+      awaiting: false,
+      appState: undefined,
+      userState: undefined
     };
   }
 
   public async componentDidMount() {
-    this.refreshBalances();
-    this.loadExternalBalances();
+    await this.refreshBalances();
+    await this.loadContractAndExternalStates();
     const oracleResult = await OracleDataSource.get();
     console.info(
       `logging the oracleResult from MainContent.tsx; here it is: ${JSON.stringify(
@@ -60,39 +56,42 @@ export class MainContent extends React.Component<Props, State> {
     });
   };
 
-  private loadExternalBalances = async () => {
-    const externalState = await getMerkleValuesExternally(this.props.isLocal);
-    this.setState({ externalState });
+  private loadContractAndExternalStates = async (e?: any) => {
+      this.forceUpdate();
+      const {contractRoot, userRoot} = await this.props.workerClient.loadAccountRootHashes(this.props.zkappPublicKey, this.props.userPrivateKey.toPublicKey());
+      const appState = await rootHashToUiInfo(contractRoot, this.props.userPrivateKey.toPublicKey());
+      const userState = await rootHashToUiInfo(userRoot, this.props.userPrivateKey.toPublicKey());
+      console.log(`loadContractAndExternalStates - app state balance: ${appState.merkleValue}`);
+      console.log(`loadContractAndExternalStates - local state balance: ${userState.merkleValue}`);
+      this.forceUpdate();
+      this.setState({appState, userState});
   };
 
   private handleDeposit = async () => {
-    console.log(`method name: handleDeposit`);
-    this.setState({ awaitingDeposit: true });
-
+    this.setState({ awaiting: true });
     try {
       await this.props.workerClient.deposit(1000, this.props.userPrivateKey);
-      this.refreshBalances();
-      this.loadExternalBalances();
+      await this.refreshBalances();
+      await this.loadContractAndExternalStates();
     } catch (err) {
       throw err;
     } finally {
-      this.setState({ awaitingDeposit: false });
+      this.setState({ awaiting: false });
     }
   };
 
-  private handleWithdraw = async () => {
-    console.log(`method name: handleWithdraw`);
-    const { userPrivateKey } = this.props;
-    this.setState({ awaitingWithdraw: true });
+  private handleWithdraw = async (e: any) => {
+    this.forceUpdate();
+    this.setState({ awaiting: true });
 
     try {
-      // TODO: JB - this does not support multiple balance changes.
-      await this.props.workerClient.withdraw(userPrivateKey);
-      this.refreshBalances();
+      await this.props.workerClient.withdraw(this.props.userPrivateKey);
+      await this.refreshBalances();
+      await this.loadContractAndExternalStates();
     } catch (err) {
       throw err;
     } finally {
-      this.setState({ awaitingWithdraw: false });
+      this.setState({ awaiting: false });
     }
   };
 
@@ -100,20 +99,24 @@ export class MainContent extends React.Component<Props, State> {
     await clearState();
   };
 
+  private loadWrapper = async (e: any) => {
+    e.stopPropagation();
+    await this.loadContractAndExternalStates();
+  }
+
   render() {
-    const { awaitingDeposit, awaitingWithdraw } = this.state;
     return (
       <div>
         <hr />
         <button onClick={this.refreshBalances}>Refresh balances</button>
-        <button onClick={this.handleDeposit} disabled={awaitingDeposit}>
+        <button onClick={this.handleDeposit} disabled={this.state.awaiting}>
           Deposit 1000
         </button>
-        <button onClick={this.handleWithdraw} disabled={awaitingWithdraw}>
+        <button onClick={this.handleWithdraw} disabled={this.state.awaiting}>
           Withdraw Entire balance
         </button>
-        <button onClick={this.loadExternalBalances}>
-          Refresh External State
+        <button onClick={this.loadWrapper}>
+          Refresh Merkle States
         </button>
         <button onClick={this.clearExternalData}>
           DELETE External State (be very careful!)
@@ -136,9 +139,59 @@ export class MainContent extends React.Component<Props, State> {
           <div>Loading user account...</div>
         )}
         <hr />
-        <h2>External state balances</h2>
-        <FormattedExternalState values={this.state.externalState} />
+        <h2>App and local state</h2>
+        {this.state.appState && <MerkleStateUi
+           name={"ZK App State (on-chain)"}
+           rootHash={this.state.appState.rootHash}
+           publicKey={this.state.appState.publicKey}
+           merkleKey={this.state.appState.merkleKey}
+           merkleValue={this.state.appState.merkleValue}
+        />}
+        {this.state.userState && <MerkleStateUi
+          name={"Local State (off-chain)"}
+          rootHash={this.state.userState.rootHash}
+          publicKey={this.state.userState.publicKey}
+          merkleKey={this.state.userState.merkleKey}
+          merkleValue={this.state.userState.merkleValue}
+        /> }
       </div>
     );
   }
 }
+
+
+
+interface MerkleStateUiProps {
+  name: string;
+  rootHash: string;
+  publicKey: PublicKey;
+  merkleKey: string;
+  merkleValue?: string;
+}
+function MerkleStateUi(props: MerkleStateUiProps) {
+  let inner = <div>loading...</div>;
+  if (props) {
+    inner = (
+      <div>
+        <ul>
+          <li>Root Hash: {props.rootHash}</li>
+          <li>Public Key: {props.publicKey.toBase58()}</li>
+          <li>Merkle Key and Value
+            <ul>
+              <li>Key: {props.merkleKey}</li>
+              <li>Value: {props.merkleValue}</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <h3>{props.name}</h3>
+      {inner}
+      <hr/>
+    </div>
+  )
+};
