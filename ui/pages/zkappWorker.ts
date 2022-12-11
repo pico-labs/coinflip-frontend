@@ -9,6 +9,10 @@ import {
   Poseidon,
   MerkleMap,
   Field,
+  UInt64,
+  Signature,
+  Int64,
+  Group,
 } from "snarkyjs";
 type Account = {}; // TODO: JB
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
@@ -19,6 +23,7 @@ import {
   setMerkleValueExternally,
 } from "../utils/datasource";
 import { initializeMap } from "../utils/merkle";
+import type { OracleResult } from "../utils/OracleDataSource";
 import { assertIsMerkleMap } from "../utils/shared-functions";
 
 const MINA_FEE = 100_000_000;
@@ -226,7 +231,7 @@ const functions = {
       state.isLocal
     );
     const tx3 = await Mina.transaction(
-      { feePayerKey: userPrivateKey, fee: 1_000_000_000 },
+      { feePayerKey: userPrivateKey, fee: 100_000_000 },
       () => {
         state.zkapp!.withdraw(
           userPrivateKey.toPublicKey(),
@@ -244,6 +249,58 @@ const functions = {
     state.map.set(key, Field(0));
     await setMerkleValueExternally(userPublicKey, 0, state.isLocal);
   },
+  flipCoin: async (
+    args: { 
+      userPrivateKey58: string,
+      oracleResult: OracleResult,
+      executorPrivateKey58: string
+    }) => {
+      console.info("Method Name: flipCoin");
+      assertIsMerkleMap(state.map);
+      const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
+      const executorPrivateKey = PrivateKey.fromBase58(args.executorPrivateKey58);
+      const userPublicKey = userPrivateKey.toPublicKey();
+      const key = Poseidon.hash(userPublicKey.toFields());
+      const witness = state.map.getWitness(key);
+      const channelBalanceSignature = Signature.fromJSON(args.oracleResult.signature);
+      const randomnessSignature = Signature.fromJSON(args.oracleResult.signature);
+      const callData = {
+        user: userPublicKey,
+        balance: state.map!.get(key),
+        witness: '...',
+        deltaBalance: Int64.from(0).toString(),
+        nonce: Field(0).toString(),
+        channelBalanceSig: channelBalanceSignature.toJSON(),
+        randomnessSig: randomnessSignature.toJSON(),
+        ct1: Field(args.oracleResult.cipherText[0]).toString(),
+        ct2: Field(args.oracleResult.cipherText[1]).toString(),
+        group: Group.fromJSON(args.oracleResult.publicKey)!.toJSON(),
+        executorPrivateKey: executorPrivateKey.toBase58()
+      }
+      console.info(`Flipping with: ${JSON.stringify(callData)}`);
+      const tx = await Mina.transaction(
+        { feePayerKey: userPrivateKey, fee: 100_000_000 },
+        () => {
+          state.zkapp!.flipCoin(
+            userPublicKey,
+            state.map!.get(key),
+            witness,
+            Int64.from(0),
+            Field(0),
+            channelBalanceSignature,
+            randomnessSignature,
+            Field(args.oracleResult.cipherText[0]),
+            Field(args.oracleResult.cipherText[1]),
+            Group.fromJSON(args.oracleResult.publicKey)!,
+            executorPrivateKey
+          )
+        }
+      );
+      console.debug("DEV - proving withdraw TX...");
+      await tx.prove();
+      console.debug("DEV - sending withdraw TX");
+      await tx.send();
+    },
 };
 
 // ---------------------------------------------------------------------------------------
