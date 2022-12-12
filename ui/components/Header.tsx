@@ -1,4 +1,5 @@
 import * as styles from './Header.module.css';
+import { Text } from '@nextui-org/react';
 export function Header() {
   return (
     <div
@@ -6,7 +7,7 @@ export function Header() {
       // @ts-ignore
       className={styles['container']}
     >
-      Welcome to Mina CoinFlip
+      <Text h2>Welcome to Mina CoinFlip</Text>
     </div>
   );
 }

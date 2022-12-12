@@ -1,7 +1,7 @@
 import * as styles from './MainContent.module.css'
 import * as React from "react";
 import { PrivateKey, PublicKey} from "snarkyjs";
-import { Button, Loading } from '@nextui-org/react';
+import {Button, Card, Loading, Spacer, Text} from '@nextui-org/react';
 import ZkappWorkerClient from "../pages/zkappWorkerClient";
 import {clearState} from "../utils/datasource";
 import { OracleDataSource } from "../utils/OracleDataSource";
@@ -132,8 +132,8 @@ export class MainContent extends React.Component<Props, State> {
           className={styles['buttons-container']}
         >
           <Button.Group color="success" title={"Flip the coin"} ghost>
-            <Button>Flip Heads</Button>
-            <Button>Flip Tails</Button>
+            <Button disabled={this.state.awaiting}>Flip Heads</Button>
+            <Button disabled={this.state.awaiting}>Flip Tails</Button>
           </Button.Group>
           <Button.Group color="primary" ghost>
             <Button onClick={this.handleDeposit} disabled={this.state.awaiting}>
@@ -153,6 +153,8 @@ export class MainContent extends React.Component<Props, State> {
             </Button>
           </Button.Group>
         </div>
+        <Spacer/>
+        <Text h3>Account Balances</Text>
         {this.state.zkAppBalance ? (
           <Balance
             balance={this.state.zkAppBalance}
@@ -161,6 +163,7 @@ export class MainContent extends React.Component<Props, State> {
         ) : (
           <div>Loading ZK App Balance...</div>
         )}
+        <Spacer/>
         {this.state.userBalance ? (
           <Balance
             balance={this.state.userBalance}
@@ -169,7 +172,8 @@ export class MainContent extends React.Component<Props, State> {
         ) : (
           <div>Loading user account...</div>
         )}
-        <h2>App and local state</h2>
+        <Spacer/>
+        <Text h3>ZK App (on-chain) and Local (off-chain) states</Text>
         {this.state.appState && <MerkleStateUi
            name={"ZK App State (on-chain)"}
            rootHash={this.state.appState.rootHash}
@@ -177,6 +181,7 @@ export class MainContent extends React.Component<Props, State> {
            merkleKey={this.state.appState.merkleKey}
            merkleValue={this.state.appState.merkleValue}
         />}
+        <Spacer/>
         {this.state.userState && <MerkleStateUi
           name={"Local State (off-chain)"}
           rootHash={this.state.userState.rootHash}
@@ -199,27 +204,25 @@ interface MerkleStateUiProps {
   merkleValue?: string;
 }
 function MerkleStateUi(props: MerkleStateUiProps) {
-  let inner = <div>loading...</div>;
+  let inner = <Loading size={'lg'}/>
   if (props) {
     inner = (
-      <div>
-        <ul>
-          <li>Root Hash: {props.rootHash}</li>
-          <li>Public Key: {props.publicKey.toBase58()}</li>
-          <li>Merkle Key and Value
-            <ul>
-              <li>Key: {props.merkleKey}</li>
-              <li>Value: {props.merkleValue}</li>
-            </ul>
-          </li>
-        </ul>
-      </div>
+      <Card>
+        <Card.Header><strong>{props.name}</strong></Card.Header>
+        <Card.Body>
+          <div>Merkle Root Hash: {props.rootHash}</div>
+          <div>Merkle Key: {props.merkleKey}</div>
+          <div>Merkle Value: {props.merkleValue}</div>
+        </Card.Body>
+        <Card.Footer>
+          <div>Public Key: {props.publicKey.toBase58()}</div>
+        </Card.Footer>
+      </Card>
     )
   }
 
   return (
     <div>
-      <h3>{props.name}</h3>
       {inner}
     </div>
   )

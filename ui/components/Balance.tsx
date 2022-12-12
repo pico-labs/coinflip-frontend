@@ -1,13 +1,14 @@
+import {Card} from '@nextui-org/react';
 interface BalanceProps {
   label: string;
   balance: string;
 }
 export function Balance(props: BalanceProps) {
-  const balance = props.balance;
+  const {balance, label} = props;
   return (
-    <div>
-      <h3>{props.label}</h3>
-      <p>{balance}</p>
-    </div>
+    <Card>
+      <Card.Header>{label}</Card.Header>
+      <Card.Body>Balance: {balance}</Card.Body>
+    </Card>
   );
 }

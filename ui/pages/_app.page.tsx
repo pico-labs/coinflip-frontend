@@ -2,7 +2,7 @@ import "../styles/globals.css";
 import {Footer} from '../components/Footer';
 import {Header} from '../components/Header';
 import * as styles from '../styles/Home.module.css'
-import {Input, Loading, NextUIProvider, Switch} from '@nextui-org/react';
+import {Input, Loading, NextUIProvider, Text} from '@nextui-org/react';
 import * as React from "react";
 import { useEffect, useState } from "react";
 import "./reactCOIServiceWorker";
@@ -96,15 +96,15 @@ export default function App() {
 
   let setup = (
     <div>
-      {state.hasBeenSetup && <h2>SnarkyJS is ready!</h2>}
+      {state.hasBeenSetup && <Text h3>SnarkyJS is ready!</Text>}
       {!state.hasBeenSetup && !state.userInputPrivateKey &&
         <div>
-          <h2>Please enter your private key below to load SnarkyJS</h2>
+          <Text h3>Please enter your private key below to load SnarkyJS</Text>
         </div>
       }
       {!state.hasBeenSetup && state.userInputPrivateKey &&
         <div>
-          <h2>Loading SnarkyJS...</h2>
+          <Text h3>Loading SnarkyJS...</Text>
           <Loading size={'lg'}/>
         </div>
         }
