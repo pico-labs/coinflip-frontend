@@ -1,7 +1,8 @@
 import "../styles/globals.css";
+import {Footer} from '../components/Footer';
 import {Header} from '../components/Header';
 import * as styles from '../styles/Home.module.css'
-import { Input, Loading, NextUIProvider} from '@nextui-org/react';
+import {Input, Loading, NextUIProvider, Switch} from '@nextui-org/react';
 import * as React from "react";
 import { useEffect, useState } from "react";
 import "./reactCOIServiceWorker";
@@ -126,9 +127,11 @@ export default function App() {
 
   return (
     <NextUIProvider>
+
+
+    <Header/>
     {/*  @ts-ignore */}
     <div className={styles['container']}>
-      <Header/>
       <WithPadding>{setup}</WithPadding>
       <WithPadding>{inputPrivateKeyControls}</WithPadding>
       <WithPadding>
@@ -146,10 +149,8 @@ export default function App() {
             />
           )}
       </WithPadding>
-      <WithPadding>
-        <footer><h3>Your currently configured network is {NETWORK}</h3></footer>
-      </WithPadding>
     </div>
+    <Footer/>
     </NextUIProvider>
   );
 }

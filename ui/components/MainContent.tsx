@@ -1,11 +1,12 @@
+import * as styles from './MainContent.module.css'
 import * as React from "react";
 import { PrivateKey, PublicKey} from "snarkyjs";
-import { Button } from '@nextui-org/react';
+import { Button, Loading } from '@nextui-org/react';
 import ZkappWorkerClient from "../pages/zkappWorkerClient";
 import {clearState} from "../utils/datasource";
 import { OracleDataSource } from "../utils/OracleDataSource";
 import {rootHashToUiInfo, UiInfo} from '../utils/ui-formatting';
-import { Balance } from "./AccountInfo";
+import { Balance } from "./Balance";
 interface Props {
   workerClient: ZkappWorkerClient;
   zkappPublicKey: PublicKey;
@@ -18,7 +19,8 @@ interface State {
   userBalance?: string;
   awaiting: boolean;
   appState: UiInfo | undefined;
-  userState: UiInfo | undefined
+  userState: UiInfo | undefined;
+  awaitingInitialLoad: boolean;
 }
 
 export class MainContent extends React.Component<Props, State> {
@@ -29,7 +31,8 @@ export class MainContent extends React.Component<Props, State> {
       userBalance: undefined,
       awaiting: false,
       appState: undefined,
-      userState: undefined
+      userState: undefined,
+      awaitingInitialLoad: true
     };
   }
 
@@ -42,6 +45,11 @@ export class MainContent extends React.Component<Props, State> {
         oracleResult
       )}`
     );
+    this.updateAwaitingInitialLoad();
+  }
+
+  private updateAwaitingInitialLoad() {
+    this.setState({awaitingInitialLoad: false});
   }
 
   private refreshBalances = async () => {
@@ -106,25 +114,45 @@ export class MainContent extends React.Component<Props, State> {
   }
 
   render() {
+    const {awaitingInitialLoad} = this.state;
+    if (awaitingInitialLoad) {
+      return (
+        <div>
+          <Loading size='lg'/>
+        </div>
+      );
+    }
+
     return (
       <div>
-        <Button.Group color="primary">
-          <Button onClick={this.handleDeposit} disabled={this.state.awaiting}>
-            Deposit 1000
-          </Button>
-          <Button onClick={this.handleWithdraw} disabled={this.state.awaiting}>
-            Withdraw Entire balance
-          </Button>
-        </Button.Group>
-          <Button.Group color="secondary">
-            <Button onClick={this.refreshBalances}>Refresh balances</Button>
-            <Button onClick={this.loadWrapper}>Refresh Merkle States</Button>
+
+
+        <div
+          // @ts-ignore
+          className={styles['buttons-container']}
+        >
+          <Button.Group color="success" title={"Flip the coin"} ghost>
+            <Button>Flip Heads</Button>
+            <Button>Flip Tails</Button>
           </Button.Group>
-        <Button.Group color="warning">
-          <Button onClick={this.clearExternalData}>
-            DELETE External State (be very careful!)
-          </Button>
-        </Button.Group>
+          <Button.Group color="primary" ghost>
+            <Button onClick={this.handleDeposit} disabled={this.state.awaiting}>
+              Deposit 1000
+            </Button>
+            <Button onClick={this.handleWithdraw} disabled={this.state.awaiting}>
+              Withdraw Entire balance
+            </Button>
+          </Button.Group>
+            <Button.Group color="secondary" ghost>
+              <Button onClick={this.refreshBalances}>Refresh balances</Button>
+              <Button onClick={this.loadWrapper}>Refresh Merkle States</Button>
+            </Button.Group>
+          <Button.Group color="warning" ghost>
+            <Button onClick={this.clearExternalData} disabled={this.state.awaiting}>
+              DELETE External State (be very careful!)
+            </Button>
+          </Button.Group>
+        </div>
         {this.state.zkAppBalance ? (
           <Balance
             balance={this.state.zkAppBalance}
