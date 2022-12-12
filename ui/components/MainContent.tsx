@@ -1,5 +1,6 @@
 import * as React from "react";
 import { PrivateKey, PublicKey} from "snarkyjs";
+import { Button } from '@nextui-org/react';
 import ZkappWorkerClient from "../pages/zkappWorkerClient";
 import {clearState} from "../utils/datasource";
 import { OracleDataSource } from "../utils/OracleDataSource";
@@ -107,21 +108,23 @@ export class MainContent extends React.Component<Props, State> {
   render() {
     return (
       <div>
-        <hr />
-        <button onClick={this.refreshBalances}>Refresh balances</button>
-        <button onClick={this.handleDeposit} disabled={this.state.awaiting}>
-          Deposit 1000
-        </button>
-        <button onClick={this.handleWithdraw} disabled={this.state.awaiting}>
-          Withdraw Entire balance
-        </button>
-        <button onClick={this.loadWrapper}>
-          Refresh Merkle States
-        </button>
-        <button onClick={this.clearExternalData}>
-          DELETE External State (be very careful!)
-        </button>
-        <hr />
+        <Button.Group color="primary">
+          <Button onClick={this.handleDeposit} disabled={this.state.awaiting}>
+            Deposit 1000
+          </Button>
+          <Button onClick={this.handleWithdraw} disabled={this.state.awaiting}>
+            Withdraw Entire balance
+          </Button>
+        </Button.Group>
+          <Button.Group color="secondary">
+            <Button onClick={this.refreshBalances}>Refresh balances</Button>
+            <Button onClick={this.loadWrapper}>Refresh Merkle States</Button>
+          </Button.Group>
+        <Button.Group color="warning">
+          <Button onClick={this.clearExternalData}>
+            DELETE External State (be very careful!)
+          </Button>
+        </Button.Group>
         {this.state.zkAppBalance ? (
           <Balance
             balance={this.state.zkAppBalance}
@@ -138,7 +141,6 @@ export class MainContent extends React.Component<Props, State> {
         ) : (
           <div>Loading user account...</div>
         )}
-        <hr />
         <h2>App and local state</h2>
         {this.state.appState && <MerkleStateUi
            name={"ZK App State (on-chain)"}
@@ -191,7 +193,6 @@ function MerkleStateUi(props: MerkleStateUiProps) {
     <div>
       <h3>{props.name}</h3>
       {inner}
-      <hr/>
     </div>
   )
-};
+}

@@ -1,4 +1,7 @@
 import "../styles/globals.css";
+import {Header} from '../components/Header';
+import * as styles from '../styles/Home.module.css'
+import { Input, Loading, NextUIProvider} from '@nextui-org/react';
 import * as React from "react";
 import { useEffect, useState } from "react";
 import "./reactCOIServiceWorker";
@@ -86,25 +89,48 @@ export default function App() {
   // -------------------------------------------------------
   // Send a transaction
 
-  let setupText = state.hasBeenSetup
-    ? "SnarkyJS Ready"
-    : state.userInputPrivateKey
-    ? "Setting up SnarkyJS..."
-    : "Please enter your private key to proceed";
-  let setup = <div> {setupText}</div>;
+
+
+
+
+  let setup = (
+    <div>
+      {state.hasBeenSetup && <h2>SnarkyJS is ready!</h2>}
+      {!state.hasBeenSetup && !state.userInputPrivateKey &&
+        <div>
+          <h2>Please enter your private key below to load SnarkyJS</h2>
+        </div>
+      }
+      {!state.hasBeenSetup && state.userInputPrivateKey &&
+        <div>
+          <h2>Loading SnarkyJS...</h2>
+          <Loading size={'lg'}/>
+        </div>
+        }
+      {}
+    </div>
+  );
 
   const isLocal = NETWORK !== "BERKELEY";
   const inputPrivateKeyControls = (
     <div>
-      <label>Enter private key</label>
-      <input onChange={handleInputValueChange} />
+      <Input
+        label="Private Key 58"
+        placeholder={`e.g. Zap2139ASkmcxsA...`}
+        // TODO: JB - Sigh, the types seem to be coming in wrong.
+        // @ts-ignore
+        onChange={handleInputValueChange}
+      />
     </div>
   );
 
   return (
-    <div>
-      <WithPadding>{inputPrivateKeyControls}</WithPadding>
+    <NextUIProvider>
+    {/*  @ts-ignore */}
+    <div className={styles['container']}>
+      <Header/>
       <WithPadding>{setup}</WithPadding>
+      <WithPadding>{inputPrivateKeyControls}</WithPadding>
       <WithPadding>
         {state.hasBeenSetup &&
           state.userAccountExists &&
@@ -120,12 +146,11 @@ export default function App() {
             />
           )}
       </WithPadding>
-      <footer>
-        <WithPadding>
-          <h3>Your currently configured network is {NETWORK}</h3>
-        </WithPadding>
-      </footer>
+      <WithPadding>
+        <footer><h3>Your currently configured network is {NETWORK}</h3></footer>
+      </WithPadding>
     </div>
+    </NextUIProvider>
   );
 }
 
