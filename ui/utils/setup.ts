@@ -37,6 +37,7 @@ async function setupNetwork(
       workerClient,
       currentAppState.userInputPrivateKey
     );
+
     return setupAndDeriveState(workerClient, currentAppState, config);
   }
 }

@@ -1,4 +1,5 @@
 import { PublicKey, PrivateKey } from "snarkyjs";
+import type { OracleResult } from "../utils/OracleDataSource";
 import {
   assertIsFetchResult, assertIsLoadRootHashesResult,
   assertIsString,
@@ -107,6 +108,15 @@ export default class ZkappWorkerClient {
   withdraw(userPrivateKey: PrivateKey) {
     const args = { userPrivateKey58: userPrivateKey.toBase58() };
     return this._call("withdraw", args);
+  }
+
+  flipCoin(userPrivateKey: PrivateKey, oracleResult: OracleResult, executorPrivateKey: PrivateKey) {
+    const args = { 
+      userPrivateKey58: userPrivateKey.toBase58(),
+      oracleResult,
+      executorPrivateKey58: executorPrivateKey.toBase58()
+    };
+    return this._call("flipCoin", args);
   }
 
   // ---------------------------------------------------------------------------------------

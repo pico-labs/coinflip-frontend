@@ -39,6 +39,8 @@ const nextConfig = {
   env: {
     APP_NETWORK: process.env.APP_NETWORK,
     USER_PRIV_KEY: process.env.USER_PRIV_KEY,
+    RANDOMNESS_ORACLE_URL: process.env.RANDOMNESS_ORACLE_URL,
+    EXECUTOR_PRIVATE_KEY: process.env.EXECUTOR_PRIVATE_KEY,
   },
 };
 

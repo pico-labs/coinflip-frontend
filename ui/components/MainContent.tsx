@@ -37,9 +37,11 @@ export class MainContent extends React.Component<Props, State> {
   }
 
   public async componentDidMount() {
+    // TODO: JB
+    // - I restored await in the merge @qcomps
     await this.refreshBalances();
     await this.loadContractAndExternalStates();
-    const oracleResult = await OracleDataSource.get();
+    const oracleResult = await OracleDataSource.get(this.props.zkappPublicKey.toBase58());
     console.info(
       `logging the oracleResult from MainContent.tsx; here it is: ${JSON.stringify(
         oracleResult
@@ -104,6 +106,27 @@ export class MainContent extends React.Component<Props, State> {
     }
   };
 
+  private handleFlipCoin = async () => {
+    console.log(`method name: handleFlipCoin`);
+    const { userPrivateKey, zkappPublicKey } = this.props;
+
+    try {
+      const oracleResult = await OracleDataSource.get(zkappPublicKey.toBase58());
+      console.info(
+        `logging the oracleResult from MainContent.tsx; here it is: ${JSON.stringify(
+          oracleResult
+        )}`
+      );
+      await this.props.workerClient.flipCoin(
+        userPrivateKey,
+        oracleResult!,
+        PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!)
+      );
+    } catch (err) {
+      throw err;
+    }
+  };
+
   private clearExternalData = async () => {
     await clearState();
   };
@@ -132,8 +155,7 @@ export class MainContent extends React.Component<Props, State> {
           className={styles['buttons-container']}
         >
           <Button.Group color="success" title={"Flip the coin"} ghost>
-            <Button disabled={this.state.awaiting}>Flip Heads</Button>
-            <Button disabled={this.state.awaiting}>Flip Tails</Button>
+            <Button disabled={this.state.awaiting} onClick={this.handleFlipCoin}>Flip Coin</Button>
           </Button.Group>
           <Button.Group color="primary" ghost>
             <Button onClick={this.handleDeposit} disabled={this.state.awaiting}>
