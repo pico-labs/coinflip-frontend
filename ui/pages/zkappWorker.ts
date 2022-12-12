@@ -49,6 +49,13 @@ export interface FetchError {
   error: FetchErrorField
 }
 
+type ChannelBalance = {
+  player: PublicKey | null;
+  executor: PublicKey;
+  deltaBalance: Int64;
+  nonce: Field;
+}
+
 interface State {
   Executor: typeof Executor | null;
   zkapp: Executor | null;
@@ -59,6 +66,7 @@ interface State {
   map: MerkleMap | null;
   merkleKeys: Set<Field>;
   contractRootHash: string;
+  channelBalance: ChannelBalance | null;
 }
 
 const state: State = {
@@ -71,6 +79,7 @@ const state: State = {
   map: null,
   merkleKeys: new Set(),
   contractRootHash: '0',
+  channelBalance: null,
 };
 
 // ---------------------------------------------------------------------------------------
@@ -90,7 +99,7 @@ const functions = {
     Mina.setActiveInstance(Local);
     state.testAccounts = Local.testAccounts;
     state.isLocal = true;
-    state.localAppPrivateKey = PrivateKey.random();
+    state.localAppPrivateKey = PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!) || PrivateKey.random();
   },
   loadContract: async (_args: {}) => {
     const { Executor } = await import("coinflip-executor-contract");
@@ -140,6 +149,12 @@ const functions = {
     const externalMapState = await getMerkleValuesExternally(state.contractRootHash);
     state.map = externalMapState[0];
     state.merkleKeys = externalMapState[1];
+    state.channelBalance = {
+      player: null,
+      executor: publicKey,
+      deltaBalance: Int64.from(0),
+      nonce: Field(0)
+    }
   },
 
   // TODO: JB - This only works with Berkeley for now because fetchAccount requires network.
@@ -174,11 +189,28 @@ const functions = {
     const sentTx = await tx.send();
     await sentTx.wait();
 
+    let tx2 = await Mina.transaction(userPrivateKey, () => {
+      executorInstance.updateRandomnessOracle(
+        appPrivateKey,
+        PublicKey.fromBase58('B62qpvpwLbLDTLQvA2EVBrX5QXmTQ7yy9442KhCj8R1zAk21LuVKtwd')
+      )
+    });
+    await tx2.prove();
+    const sentTx2 = await tx2.send();
+    await sentTx2.wait();
+    
+
     const stateRootHash = Mina.getAccount(state.zkapp!.address).appState![0];
     state.contractRootHash = stateRootHash.toString();
     const externalMapState = await getMerkleValuesExternally(state.contractRootHash);
     state.map = externalMapState[0];
     state.merkleKeys = externalMapState[1];
+    state.channelBalance = {
+      player: null,
+      executor: executorInstance.address,
+      deltaBalance: Int64.from(0),
+      nonce: Field(0)
+    }
     if (sentTx.hash() !== undefined) {
       console.debug(`DEV - Success! account funded, deployed, initialized`);
     }
@@ -231,6 +263,7 @@ const functions = {
     const newBalance = previousBalanceField.add(depositAmountField);
     state.map.set(key, newBalance); // CD: Note, previous balance probably ought not to come from args, but just be read from the map
     // TODO: JB - Make sure this is right.
+    state.channelBalance!.player = userPublicKey;
     await setMerkleValueExternally(state.contractRootHash, userPublicKey, parseInt(newBalance.toString()));
   },
 
@@ -267,9 +300,17 @@ const functions = {
       const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
       const executorPrivateKey = PrivateKey.fromBase58(args.executorPrivateKey58);
       const userPublicKey = userPrivateKey.toPublicKey();
+      state.channelBalance!.player = userPublicKey;
       const key = Poseidon.hash(userPublicKey.toFields());
       const witness = state.map.getWitness(key);
-      const channelBalanceSignature = Signature.fromJSON(args.oracleResult.signature);
+      const channelBalanceSignature = Signature.create(
+        executorPrivateKey,
+        [
+          Poseidon.hash(state.channelBalance!.player!.toFields()),
+          state.channelBalance!.deltaBalance.toField(),
+          state.channelBalance!.nonce
+        ]
+      );
       const randomnessSignature = Signature.fromJSON(args.oracleResult.signature);
       const callData = {
         user: userPublicKey,
@@ -285,10 +326,11 @@ const functions = {
         executorPrivateKey: executorPrivateKey.toBase58()
       }
       console.info(`Flipping with: ${JSON.stringify(callData)}`);
+      let resp: [Int64, Field[]] = [Int64.from(0), [Field(0)]]
       const tx = await Mina.transaction(
         { feePayerKey: userPrivateKey, fee: 100_000_000 },
         () => {
-          state.zkapp!.flipCoin(
+          resp = state.zkapp!.flipCoin(
             userPublicKey,
             state.map!.get(key),
             witness,
@@ -307,6 +349,7 @@ const functions = {
       await tx.prove();
       console.debug("DEV - sending withdraw TX");
       await tx.send();
+      console.debug(resp[0].toString(), resp[1].map(x => x.toString()));
     },
   // TODO: JB - Delete
   // resetContract: async (args: {publicKey58: string}): Promise<string> => {
