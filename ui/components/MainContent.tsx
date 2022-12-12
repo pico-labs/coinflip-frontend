@@ -33,9 +33,9 @@ export class MainContent extends React.Component<Props, State> {
   }
 
   public async componentDidMount() {
-    await this.refreshBalances();
+    this.refreshBalances();
     await this.loadContractAndExternalStates();
-    const oracleResult = await OracleDataSource.get();
+    const oracleResult = await OracleDataSource.get(this.props.zkappPublicKey.toBase58());
     console.info(
       `logging the oracleResult from MainContent.tsx; here it is: ${JSON.stringify(
         oracleResult
@@ -95,6 +95,27 @@ export class MainContent extends React.Component<Props, State> {
     }
   };
 
+  private handleFlipCoin = async () => {
+    console.log(`method name: handleFlipCoin`);
+    const { userPrivateKey, zkappPublicKey } = this.props;
+
+    try {
+      const oracleResult = await OracleDataSource.get(zkappPublicKey.toBase58());
+      console.info(
+        `logging the oracleResult from MainContent.tsx; here it is: ${JSON.stringify(
+          oracleResult
+        )}`
+      );
+      await this.props.workerClient.flipCoin(
+        userPrivateKey,
+        oracleResult!,
+        PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!)
+      );
+    } catch (err) {
+      throw err;
+    }
+  };
+
   private clearExternalData = async () => {
     await clearState();
   };
@@ -117,6 +138,9 @@ export class MainContent extends React.Component<Props, State> {
         </button>
         <button onClick={this.loadWrapper}>
           Refresh Merkle States
+        </button>
+        <button onClick={this.handleFlipCoin}>
+          Flip Coin
         </button>
         <button onClick={this.clearExternalData}>
           DELETE External State (be very careful!)
