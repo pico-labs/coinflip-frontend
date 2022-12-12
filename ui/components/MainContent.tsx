@@ -132,7 +132,9 @@ export class MainContent extends React.Component<Props, State> {
   };
 
   private loadWrapper = async (e: any) => {
-    e.stopPropagation();
+    console.log(e);
+    e?.stopPropagation && e?.stopPropagation();
+
     await this.loadContractAndExternalStates();
   }
 
