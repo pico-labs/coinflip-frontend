@@ -35,12 +35,6 @@ export class MainContent extends React.Component<Props, State> {
   public async componentDidMount() {
     this.refreshBalances();
     await this.loadContractAndExternalStates();
-    const oracleResult = await OracleDataSource.get(this.props.zkappPublicKey.toBase58());
-    console.info(
-      `logging the oracleResult from MainContent.tsx; here it is: ${JSON.stringify(
-        oracleResult
-      )}`
-    );
   }
 
   private refreshBalances = async () => {
