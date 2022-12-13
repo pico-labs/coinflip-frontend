@@ -6,7 +6,7 @@ const networkConfig = {
       datastoreKey: 'berkeley-state',
     },
     oracleUrl:
-      "https://randomness-oracle-ah5yo4vyg-pico-labs.vercel.app/api/randomNumber"
+      "https://randomness-oracle-ah5yo4vyg-pico-labs.vercel.app/api/randomNumber",
   },
   LOCAL: {
     coinflipContract: {

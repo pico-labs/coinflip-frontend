@@ -1,9 +1,4 @@
-import {
-  PublicKey,
-  Poseidon,
-  Field,
-} from "snarkyjs";
-
+import { PublicKey, Poseidon, Field } from "snarkyjs";
 
 // TODO: JB - Delete later.
 function generateMapKey(publicKey: PublicKey | string): Field {

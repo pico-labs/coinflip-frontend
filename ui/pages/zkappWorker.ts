@@ -16,7 +16,7 @@ import {
   Circuit,
 } from "snarkyjs";
 type Account = {
-  appState?: Field[]
+  appState?: Field[];
 }; // TODO: JB
 
 import type { OracleResult } from "../utils/OracleDataSource";
@@ -26,16 +26,19 @@ export interface LoadRootHashesResult {
 }
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
-import { getMerkleValuesExternally, setMerkleValueExternally } from '../utils/datasource';
-import { assertIsMerkleMap } from '../utils/shared-functions';
+import {
+  getMerkleValuesExternally,
+  setMerkleValueExternally,
+} from "../utils/datasource";
+import { assertIsMerkleMap } from "../utils/shared-functions";
 
 const MINA_FEE = 100_000_000;
 
-type TestAccount = { publicKey: PublicKey, privateKey: PrivateKey };
+type TestAccount = { publicKey: PublicKey; privateKey: PrivateKey };
 
 interface FetchErrorField {
   statusCode: number;
-  statusText: string
+  statusText: string;
 }
 
 export interface FetchSuccess {
@@ -47,7 +50,7 @@ export type FetchResult = FetchSuccess | FetchError;
 
 export interface FetchError {
   account: undefined;
-  error: FetchErrorField
+  error: FetchErrorField;
 }
 
 type ChannelBalance = {
@@ -55,7 +58,7 @@ type ChannelBalance = {
   executor: PublicKey;
   deltaBalance: Int64;
   nonce: Field;
-}
+};
 
 interface State {
   Executor: typeof Executor | null;
@@ -80,7 +83,7 @@ const state: State = {
   localAppPrivateKey: null,
   map: null,
   merkleKeys: new Set(),
-  contractRootHash: '0',
+  contractRootHash: "0",
   channelBalance: null,
   latestSignedChannelBalance: null
 };
@@ -93,16 +96,21 @@ const functions = {
   },
   setActiveInstanceToBerkeley: async (_args: {}) => {
     let Berkeley = Mina.Network(
-      'https://proxy.berkeley.minaexplorer.com/graphql'
+      "https://proxy.berkeley.minaexplorer.com/graphql"
     );
     Mina.setActiveInstance(Berkeley);
   },
   setActiveInstanceToLocal: async (_args: {}) => {
     const Local = Mina.LocalBlockchain({ proofsEnabled: true });
     Mina.setActiveInstance(Local);
+
     state.testAccounts = Local.testAccounts;
     state.isLocal = true;
-    state.localAppPrivateKey = PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!) || PrivateKey.random();
+    // @qcomps - another change I made
+    const maybePrivateKey58 = process.env.EXECUTOR_PRIVATE_KEY;
+    state.localAppPrivateKey = maybePrivateKey58
+      ? PrivateKey.fromBase58(maybePrivateKey58)
+      : PrivateKey.random();
   },
   loadContract: async (_args: {}) => {
     const { Executor } = await import("coinflip-executor-contract");
@@ -110,12 +118,14 @@ const functions = {
     state.Executor = Executor;
   },
   compileContract: async (_args: {}) => {
-    assertsIsSpecifiedContract<Executor>(state.Executor, 'Executor');
+    assertsIsSpecifiedContract<Executor>(state.Executor, "Executor");
     await state.Executor.compile();
   },
-  loadBalances: async (args: { publicKeys: Array<string> }): Promise<Array<string>> => {
-    return args.publicKeys.map(key => {
-      return Mina.getBalance(PublicKey.fromBase58(key)).toString()
+  loadBalances: async (args: {
+    publicKeys: Array<string>;
+  }): Promise<Array<string>> => {
+    return args.publicKeys.map((key) => {
+      return Mina.getBalance(PublicKey.fromBase58(key)).toString();
     });
   },
 
@@ -130,9 +140,15 @@ const functions = {
         // Therefore, we munge the output to normalize the return type so downstream consumers
         // don't have to behave differently depending on the network.
         const account = Mina.getAccount(publicKey);
-        return { account, error: undefined }
+        return { account, error: undefined };
       } catch (err) {
-        return { account: undefined, error: { statusCode: 9999, statusText: 'Local - could not find account.' } };
+        return {
+          account: undefined,
+          error: {
+            statusCode: 9999,
+            statusText: "Local - could not find account.",
+          },
+        };
       }
     } else {
       const publicKey = PublicKey.fromBase58(args.publicKey58);
@@ -146,27 +162,38 @@ const functions = {
 
     // TODO: JB - add support for berkeley
     const appState = await fetchAccount({ publicKey });
-    console.log(`App State: ${appState}`)
+    console.log(`App State: ${appState}`);
     const stateRootHash = appState.account!.appState![0];
     state.contractRootHash = stateRootHash.toString();
-    const externalMapState = await getMerkleValuesExternally(state.contractRootHash);
+    const externalMapState = await getMerkleValuesExternally(
+      state.contractRootHash
+    );
     state.map = externalMapState[0];
     state.merkleKeys = externalMapState[1];
     state.channelBalance = {
       player: null,
       executor: publicKey,
       deltaBalance: Int64.from(0),
-      nonce: Field(0)
+      nonce: Field(0),
     };
   },
 
   // TODO: JB - This only works with Berkeley for now because fetchAccount requires network.
-  loadAccountRootHashes: async (args: {contractKey58: string, userKey58: string}): Promise<LoadRootHashesResult> => {
+  loadAccountRootHashes: async (args: {
+    contractKey58: string;
+    userKey58: string;
+  }): Promise<LoadRootHashesResult> => {
     let upToDateContractAccount: Account;
     try {
-      upToDateContractAccount = await (await fetchAccount({publicKey: PublicKey.fromBase58(args.contractKey58)})).account!;
-    } catch(e) {
-      upToDateContractAccount = Mina.getAccount(PublicKey.fromBase58(args.contractKey58));
+      upToDateContractAccount = await (
+        await fetchAccount({
+          publicKey: PublicKey.fromBase58(args.contractKey58),
+        })
+      ).account!;
+    } catch (e) {
+      upToDateContractAccount = Mina.getAccount(
+        PublicKey.fromBase58(args.contractKey58)
+      );
     }
     
     // weird hack to make sure delta balance is tracked
@@ -189,17 +216,22 @@ const functions = {
     if (upToDateContractAccount.appState) {
       const contractRootHash = upToDateContractAccount.appState[0].toString();
       const userRootHash = state.map?.getRoot().toString();
-      return {contractRoot: contractRootHash, userRoot: userRootHash };
+      return { contractRoot: contractRootHash, userRoot: userRootHash };
     } else {
-      throw 'expected contract root hash to be defined.';
+      throw "expected contract root hash to be defined.";
     }
   },
-  initLocalZkappInstance: async (args: { userPrivateKey58: string, appPrivateKey58: string }) => {
-    assertsIsSpecifiedContract<Executor>(state.Executor, 'Executor');
+  initLocalZkappInstance: async (args: {
+    userPrivateKey58: string;
+    appPrivateKey58: string;
+  }) => {
+    assertsIsSpecifiedContract<Executor>(state.Executor, "Executor");
     const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
     const appPrivateKey = PrivateKey.fromBase58(args.appPrivateKey58);
 
-    const executorInstance = new state.Executor(PublicKey.fromPrivateKey(appPrivateKey));
+    const executorInstance = new state.Executor(
+      PublicKey.fromPrivateKey(appPrivateKey)
+    );
     let tx = await Mina.transaction(userPrivateKey, () => {
       AccountUpdate.fundNewAccount(userPrivateKey);
       executorInstance.deploy({ zkappKey: appPrivateKey });
@@ -213,25 +245,28 @@ const functions = {
     let tx2 = await Mina.transaction(userPrivateKey, () => {
       executorInstance.updateRandomnessOracle(
         appPrivateKey,
-        PublicKey.fromBase58('B62qpvpwLbLDTLQvA2EVBrX5QXmTQ7yy9442KhCj8R1zAk21LuVKtwd')
-      )
+        PublicKey.fromBase58(
+          "B62qpvpwLbLDTLQvA2EVBrX5QXmTQ7yy9442KhCj8R1zAk21LuVKtwd"
+        )
+      );
     });
     await tx2.prove();
     const sentTx2 = await tx2.send();
     await sentTx2.wait();
-    
 
     const stateRootHash = Mina.getAccount(state.zkapp!.address).appState![0];
     state.contractRootHash = stateRootHash.toString();
-    const externalMapState = await getMerkleValuesExternally(state.contractRootHash);
+    const externalMapState = await getMerkleValuesExternally(
+      state.contractRootHash
+    );
     state.map = externalMapState[0];
     state.merkleKeys = externalMapState[1];
     state.channelBalance = {
       player: null,
       executor: executorInstance.address,
       deltaBalance: Int64.from(0),
-      nonce: Field(0)
-    }
+      nonce: Field(0),
+    };
     if (sentTx.hash() !== undefined) {
       console.debug(`DEV - Success! account funded, deployed, initialized`);
     }
@@ -243,7 +278,7 @@ const functions = {
     if (state.isLocal && state.localAppPrivateKey) {
       return state.localAppPrivateKey.toBase58();
     } else {
-      throw 'This operation is only supported on local and with a private key initialized; are you on the right network?';
+      throw "This operation is only supported on local and with a private key initialized; are you on the right network?";
     }
   },
   deposit: async (args: {
@@ -268,12 +303,12 @@ const functions = {
     });
     console.debug('DEV - proving TX...')
     await tx.prove();
-    console.debug('DEV - signing TX...')
+    console.debug("DEV - signing TX...");
     tx.sign([userPrivateKey]);
-    console.debug('DEV - sending TX...')
+    console.debug("DEV - sending TX...");
     const sentTx = await tx.send();
     console.info(sentTx);
-    console.debug('DEV - waiting...')
+    console.debug("DEV - waiting...");
     const r = await sentTx.wait();
     console.info(r);
     console.debug(`DEV - TX hash: ${sentTx.hash()}`);
@@ -300,8 +335,8 @@ const functions = {
 
   withdraw: async (args: { userPrivateKey58: string }) => {
     assertIsMerkleMap(state.map);
-    const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58)
-    const userPublicKey = userPrivateKey.toPublicKey()
+    const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
+    const userPublicKey = userPrivateKey.toPublicKey();
     const key = Poseidon.hash(userPublicKey.toFields());
     const witness = state.map.getWitness(key);
     const tx3 = await Mina.transaction({ feePayerKey: userPrivateKey, fee: 100_000_000 }, () => {
@@ -316,12 +351,12 @@ const functions = {
     });
     console.debug('DEV - proving withdraw TX...');
     await tx3.prove();
-    console.debug('DEV - sending withdraw TX')
+    console.debug("DEV - sending withdraw TX");
     await tx3.send();
 
     // from CD: after a successful withdrawal, we set to 0.
     state.map.set(key, Field(0));
-    await setMerkleValueExternally(state.contractRootHash, userPublicKey, 0)
+    await setMerkleValueExternally(state.contractRootHash, userPublicKey, 0);
   },
   flipCoin: async (
     args: { 
@@ -401,9 +436,12 @@ const functions = {
 
 // ---------------------------------------------------------------------------------------
 
-function assertsIsSpecifiedContract<S>(contract: unknown, expectedName: string): asserts contract is S {
-  if (typeof contract !== 'function') {
-    throw 'contract is not a function';
+function assertsIsSpecifiedContract<S>(
+  contract: unknown,
+  expectedName: string
+): asserts contract is S {
+  if (typeof contract !== "function") {
+    throw "contract is not a function";
   }
 
   const castContract = contract as { name: string };
@@ -416,23 +454,26 @@ function assertsIsSpecifiedContract<S>(contract: unknown, expectedName: string):
 export type WorkerFunctions = keyof typeof functions;
 
 export type ZkappWorkerRequest = {
-  id: number,
-  fn: WorkerFunctions,
-  args: any
-}
+  id: number;
+  fn: WorkerFunctions;
+  args: any;
+};
 
 export type ZkappWorkerReponse = {
-  id: number,
-  data: any
-}
+  id: number;
+  data: any;
+};
 if (process.browser) {
-  addEventListener('message', async (event: MessageEvent<ZkappWorkerRequest>) => {
-    const returnData = await functions[event.data.fn](event.data.args);
+  addEventListener(
+    "message",
+    async (event: MessageEvent<ZkappWorkerRequest>) => {
+      const returnData = await functions[event.data.fn](event.data.args);
 
-    const message: ZkappWorkerReponse = {
-      id: event.data.id,
-      data: returnData,
+      const message: ZkappWorkerReponse = {
+        id: event.data.id,
+        data: returnData,
+      };
+      postMessage(message);
     }
-    postMessage(message)
-  });
+  );
 }
