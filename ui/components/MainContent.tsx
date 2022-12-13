@@ -183,7 +183,7 @@ export class MainContent extends React.Component<Props, State> {
 
   render() {
     const buttonsAreLoading = !this.props.stateIsSetup;
-    const {awaiting} = this.state;
+    const { awaiting } = this.state;
     return (
       <div>
         <div
@@ -243,7 +243,10 @@ export class MainContent extends React.Component<Props, State> {
             label="ZK App Account balance"
           />
         ) : (
-          <div>Loading ZK App Balance...<Loading size={'md'}/></div>
+          <div>
+            Loading ZK App Balance...
+            <Loading size={"md"} />
+          </div>
         )}
         <Spacer />
         {this.state.userBalance ? (
@@ -252,7 +255,10 @@ export class MainContent extends React.Component<Props, State> {
             label="User account balance"
           />
         ) : (
-          <div>Loading user account...<Loading size={'md'}/></div>
+          <div>
+            Loading user account...
+            <Loading size={"md"} />
+          </div>
         )}
         <Spacer />
         <Text h3>ZK App (on-chain) and Local (off-chain) states</Text>
@@ -288,7 +294,7 @@ interface MerkleStateUiProps {
 }
 function MerkleStateUi(props: MerkleStateUiProps) {
   let inner;
-  const loading = props.loading || !props.rootHash
+  const loading = props.loading || !props.rootHash;
   if (!loading) {
     inner = (
       <Card>
@@ -311,10 +317,12 @@ function MerkleStateUi(props: MerkleStateUiProps) {
         <Card.Header>
           <strong>{props.name}</strong>
         </Card.Header>
-        <Card.Body><Loading size={'lg'}/></Card.Body>
-        <Card.Footer/>
+        <Card.Body>
+          <Loading size={"lg"} />
+        </Card.Body>
+        <Card.Footer />
       </Card>
-    )
+    );
   }
 
   return <div>{inner}</div>;
