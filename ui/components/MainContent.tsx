@@ -1,11 +1,11 @@
-import * as styles from './MainContent.module.css'
+import * as styles from "./MainContent.module.css";
 import * as React from "react";
-import { PrivateKey, PublicKey} from "snarkyjs";
-import {Button, Card, Loading, Spacer, Text} from '@nextui-org/react';
+import { PrivateKey, PublicKey } from "snarkyjs";
+import { Button, Card, Loading, Spacer, Text } from "@nextui-org/react";
 import ZkappWorkerClient from "../pages/zkappWorkerClient";
-import {clearState} from "../utils/datasource";
+import { clearState } from "../utils/datasource";
 import { OracleDataSource } from "../utils/OracleDataSource";
-import {rootHashToUiInfo, UiInfo} from '../utils/ui-formatting';
+import { rootHashToUiInfo, UiInfo } from "../utils/ui-formatting";
 import { Balance } from "./Balance";
 interface Props {
   workerClient: ZkappWorkerClient;
@@ -32,7 +32,7 @@ export class MainContent extends React.Component<Props, State> {
       awaiting: false,
       appState: undefined,
       userState: undefined,
-      awaitingInitialLoad: true
+      awaitingInitialLoad: true,
     };
   }
 
@@ -41,7 +41,9 @@ export class MainContent extends React.Component<Props, State> {
     // - I restored await in the merge @qcomps
     await this.refreshBalances();
     await this.loadContractAndExternalStates();
-    const oracleResult = await OracleDataSource.get(this.props.zkappPublicKey.toBase58());
+    const oracleResult = await OracleDataSource.get(
+      this.props.zkappPublicKey.toBase58()
+    );
     console.info(
       `logging the oracleResult from MainContent.tsx; here it is: ${JSON.stringify(
         oracleResult
@@ -51,7 +53,7 @@ export class MainContent extends React.Component<Props, State> {
   }
 
   private updateAwaitingInitialLoad() {
-    this.setState({awaitingInitialLoad: false});
+    this.setState({ awaitingInitialLoad: false });
   }
 
   private refreshBalances = async () => {
@@ -68,14 +70,28 @@ export class MainContent extends React.Component<Props, State> {
   };
 
   private loadContractAndExternalStates = async (e?: any) => {
-      this.forceUpdate();
-      const {contractRoot, userRoot} = await this.props.workerClient.loadAccountRootHashes(this.props.zkappPublicKey, this.props.userPrivateKey.toPublicKey());
-      const appState = await rootHashToUiInfo(contractRoot, this.props.userPrivateKey.toPublicKey());
-      const userState = await rootHashToUiInfo(userRoot, this.props.userPrivateKey.toPublicKey());
-      console.log(`loadContractAndExternalStates - app state balance: ${appState.merkleValue}`);
-      console.log(`loadContractAndExternalStates - local state balance: ${userState.merkleValue}`);
-      this.forceUpdate();
-      this.setState({appState, userState});
+    this.forceUpdate();
+    const { contractRoot, userRoot } =
+      await this.props.workerClient.loadAccountRootHashes(
+        this.props.zkappPublicKey,
+        this.props.userPrivateKey.toPublicKey()
+      );
+    const appState = await rootHashToUiInfo(
+      contractRoot,
+      this.props.userPrivateKey.toPublicKey()
+    );
+    const userState = await rootHashToUiInfo(
+      userRoot,
+      this.props.userPrivateKey.toPublicKey()
+    );
+    console.log(
+      `loadContractAndExternalStates - app state balance: ${appState.merkleValue}`
+    );
+    console.log(
+      `loadContractAndExternalStates - local state balance: ${userState.merkleValue}`
+    );
+    this.forceUpdate();
+    this.setState({ appState, userState });
   };
 
   private handleDeposit = async () => {
@@ -111,7 +127,9 @@ export class MainContent extends React.Component<Props, State> {
     const { userPrivateKey, zkappPublicKey } = this.props;
 
     try {
-      const oracleResult = await OracleDataSource.get(zkappPublicKey.toBase58());
+      const oracleResult = await OracleDataSource.get(
+        zkappPublicKey.toBase58()
+      );
       console.info(
         `logging the oracleResult from MainContent.tsx; here it is: ${JSON.stringify(
           oracleResult
@@ -136,48 +154,57 @@ export class MainContent extends React.Component<Props, State> {
     e?.stopPropagation && e?.stopPropagation();
 
     await this.loadContractAndExternalStates();
-  }
+  };
 
   render() {
-    const {awaitingInitialLoad} = this.state;
+    const { awaitingInitialLoad } = this.state;
     if (awaitingInitialLoad) {
       return (
         <div>
-          <Loading size='lg'/>
+          <Loading size="lg" />
         </div>
       );
     }
 
     return (
       <div>
-
-
         <div
           // @ts-ignore
-          className={styles['buttons-container']}
+          className={styles["buttons-container"]}
         >
           <Button.Group color="success" title={"Flip the coin"} ghost>
-            <Button disabled={this.state.awaiting} onClick={this.handleFlipCoin}>Flip Coin</Button>
+            <Button
+              disabled={this.state.awaiting}
+              onClick={this.handleFlipCoin}
+            >
+              Flip Coin
+            </Button>
           </Button.Group>
           <Button.Group color="primary" ghost>
             <Button onClick={this.handleDeposit} disabled={this.state.awaiting}>
               Deposit 1000
             </Button>
-            <Button onClick={this.handleWithdraw} disabled={this.state.awaiting}>
+            <Button
+              onClick={this.handleWithdraw}
+              disabled={this.state.awaiting}
+            >
               Withdraw Entire balance
             </Button>
           </Button.Group>
-            <Button.Group color="secondary" ghost>
-              <Button onClick={this.refreshBalances}>Refresh balances</Button>
-              <Button onClick={this.loadWrapper}>Refresh Merkle States</Button>
-            </Button.Group>
+          <Button.Group color="secondary" ghost>
+            <Button onClick={this.refreshBalances}>Refresh balances</Button>
+            <Button onClick={this.loadWrapper}>Refresh Merkle States</Button>
+          </Button.Group>
           <Button.Group color="warning" ghost>
-            <Button onClick={this.clearExternalData} disabled={this.state.awaiting}>
+            <Button
+              onClick={this.clearExternalData}
+              disabled={this.state.awaiting}
+            >
               DELETE External State (be very careful!)
             </Button>
           </Button.Group>
         </div>
-        <Spacer/>
+        <Spacer />
         <Text h3>Account Balances</Text>
         {this.state.zkAppBalance ? (
           <Balance
@@ -187,7 +214,7 @@ export class MainContent extends React.Component<Props, State> {
         ) : (
           <div>Loading ZK App Balance...</div>
         )}
-        <Spacer/>
+        <Spacer />
         {this.state.userBalance ? (
           <Balance
             balance={this.state.userBalance}
@@ -196,29 +223,31 @@ export class MainContent extends React.Component<Props, State> {
         ) : (
           <div>Loading user account...</div>
         )}
-        <Spacer/>
+        <Spacer />
         <Text h3>ZK App (on-chain) and Local (off-chain) states</Text>
-        {this.state.appState && <MerkleStateUi
-           name={"ZK App State (on-chain)"}
-           rootHash={this.state.appState.rootHash}
-           publicKey={this.state.appState.publicKey}
-           merkleKey={this.state.appState.merkleKey}
-           merkleValue={this.state.appState.merkleValue}
-        />}
-        <Spacer/>
-        {this.state.userState && <MerkleStateUi
-          name={"Local State (off-chain)"}
-          rootHash={this.state.userState.rootHash}
-          publicKey={this.state.userState.publicKey}
-          merkleKey={this.state.userState.merkleKey}
-          merkleValue={this.state.userState.merkleValue}
-        /> }
+        {this.state.appState && (
+          <MerkleStateUi
+            name={"ZK App State (on-chain)"}
+            rootHash={this.state.appState.rootHash}
+            publicKey={this.state.appState.publicKey}
+            merkleKey={this.state.appState.merkleKey}
+            merkleValue={this.state.appState.merkleValue}
+          />
+        )}
+        <Spacer />
+        {this.state.userState && (
+          <MerkleStateUi
+            name={"Local State (off-chain)"}
+            rootHash={this.state.userState.rootHash}
+            publicKey={this.state.userState.publicKey}
+            merkleKey={this.state.userState.merkleKey}
+            merkleValue={this.state.userState.merkleValue}
+          />
+        )}
       </div>
     );
   }
 }
-
-
 
 interface MerkleStateUiProps {
   name: string;
@@ -228,11 +257,13 @@ interface MerkleStateUiProps {
   merkleValue?: string;
 }
 function MerkleStateUi(props: MerkleStateUiProps) {
-  let inner = <Loading size={'lg'}/>
+  let inner = <Loading size={"lg"} />;
   if (props) {
     inner = (
       <Card>
-        <Card.Header><strong>{props.name}</strong></Card.Header>
+        <Card.Header>
+          <strong>{props.name}</strong>
+        </Card.Header>
         <Card.Body>
           <div>Merkle Root Hash: {props.rootHash}</div>
           <div>Merkle Key: {props.merkleKey}</div>
@@ -242,12 +273,8 @@ function MerkleStateUi(props: MerkleStateUiProps) {
           <div>Public Key: {props.publicKey.toBase58()}</div>
         </Card.Footer>
       </Card>
-    )
+    );
   }
 
-  return (
-    <div>
-      {inner}
-    </div>
-  )
+  return <div>{inner}</div>;
 }

@@ -1,8 +1,8 @@
 import "../styles/globals.css";
-import {Footer} from '../components/Footer';
-import {Header} from '../components/Header';
-import * as styles from '../styles/Home.module.css'
-import {Input, Loading, NextUIProvider, Text} from '@nextui-org/react';
+import { Footer } from "../components/Footer";
+import { Header } from "../components/Header";
+import * as styles from "../styles/Home.module.css";
+import { Input, Loading, NextUIProvider, Text } from "@nextui-org/react";
 import * as React from "react";
 import { useEffect, useState } from "react";
 import "./reactCOIServiceWorker";
@@ -90,24 +90,20 @@ export default function App() {
   // -------------------------------------------------------
   // Send a transaction
 
-
-
-
-
   let setup = (
     <div>
       {state.hasBeenSetup && <Text h3>SnarkyJS is ready!</Text>}
-      {!state.hasBeenSetup && !state.userInputPrivateKey &&
+      {!state.hasBeenSetup && !state.userInputPrivateKey && (
         <div>
           <Text h3>Please enter your private key below to load SnarkyJS</Text>
         </div>
-      }
-      {!state.hasBeenSetup && state.userInputPrivateKey &&
+      )}
+      {!state.hasBeenSetup && state.userInputPrivateKey && (
         <div>
           <Text h3>Loading SnarkyJS...</Text>
-          <Loading size={'lg'}/>
+          <Loading size={"lg"} />
         </div>
-        }
+      )}
       {}
     </div>
   );
@@ -127,30 +123,27 @@ export default function App() {
 
   return (
     <NextUIProvider>
-
-
-    <Header/>
-    {/*  @ts-ignore */}
-    <div className={styles['container']}>
-      <WithPadding>{setup}</WithPadding>
-      <WithPadding>{inputPrivateKeyControls}</WithPadding>
-      <WithPadding>
-        {state.hasBeenSetup &&
-          state.userAccountExists &&
-          state.zkappWorkerClient &&
-          state.zkappPublicKey &&
-          state.userInputPrivateKey &&
-          (
-            <MainContent
-              workerClient={state.zkappWorkerClient}
-              zkappPublicKey={state.zkappPublicKey}
-              isLocal={isLocal}
-              userPrivateKey={state.userInputPrivateKey}
-            />
-          )}
-      </WithPadding>
-    </div>
-    <Footer/>
+      <Header />
+      {/*  @ts-ignore */}
+      <div className={styles["container"]}>
+        <WithPadding>{setup}</WithPadding>
+        <WithPadding>{inputPrivateKeyControls}</WithPadding>
+        <WithPadding>
+          {state.hasBeenSetup &&
+            state.userAccountExists &&
+            state.zkappWorkerClient &&
+            state.zkappPublicKey &&
+            state.userInputPrivateKey && (
+              <MainContent
+                workerClient={state.zkappWorkerClient}
+                zkappPublicKey={state.zkappPublicKey}
+                isLocal={isLocal}
+                userPrivateKey={state.userInputPrivateKey}
+              />
+            )}
+        </WithPadding>
+      </div>
+      <Footer />
     </NextUIProvider>
   );
 }

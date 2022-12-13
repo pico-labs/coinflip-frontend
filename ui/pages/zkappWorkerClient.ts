@@ -1,7 +1,8 @@
 import { PublicKey, PrivateKey } from "snarkyjs";
 import type { OracleResult } from "../utils/OracleDataSource";
 import {
-  assertIsFetchResult, assertIsLoadRootHashesResult,
+  assertIsFetchResult,
+  assertIsLoadRootHashesResult,
   assertIsString,
   assertIsStringArray,
 } from "../utils/shared-functions";
@@ -10,7 +11,8 @@ import type {
   ZkappWorkerRequest,
   ZkappWorkerReponse,
   WorkerFunctions,
-  FetchResult, LoadRootHashesResult,
+  FetchResult,
+  LoadRootHashesResult,
 } from "./zkappWorker";
 
 export default class ZkappWorkerClient {
@@ -37,10 +39,13 @@ export default class ZkappWorkerClient {
   //   return result
   // }
 
-  async loadAccountRootHashes(contractPublicKey: PublicKey, userPublicKey: PublicKey): Promise<LoadRootHashesResult> {
-    const result: unknown = await this._call('loadAccountRootHashes', {
+  async loadAccountRootHashes(
+    contractPublicKey: PublicKey,
+    userPublicKey: PublicKey
+  ): Promise<LoadRootHashesResult> {
+    const result: unknown = await this._call("loadAccountRootHashes", {
       contractKey58: contractPublicKey.toBase58(),
-      userKey58: userPublicKey.toBase58()
+      userKey58: userPublicKey.toBase58(),
     });
     assertIsLoadRootHashesResult(result);
     return result;
@@ -110,11 +115,15 @@ export default class ZkappWorkerClient {
     return this._call("withdraw", args);
   }
 
-  flipCoin(userPrivateKey: PrivateKey, oracleResult: OracleResult, executorPrivateKey: PrivateKey) {
-    const args = { 
+  flipCoin(
+    userPrivateKey: PrivateKey,
+    oracleResult: OracleResult,
+    executorPrivateKey: PrivateKey
+  ) {
+    const args = {
       userPrivateKey58: userPrivateKey.toBase58(),
       oracleResult,
-      executorPrivateKey58: executorPrivateKey.toBase58()
+      executorPrivateKey58: executorPrivateKey.toBase58(),
     };
     return this._call("flipCoin", args);
   }
