@@ -129,18 +129,13 @@ export default function App() {
         <WithPadding>{setup}</WithPadding>
         <WithPadding>{inputPrivateKeyControls}</WithPadding>
         <WithPadding>
-          {state.hasBeenSetup &&
-            state.userAccountExists &&
-            state.zkappWorkerClient &&
-            state.zkappPublicKey &&
-            state.userInputPrivateKey && (
-              <MainContent
-                workerClient={state.zkappWorkerClient}
-                zkappPublicKey={state.zkappPublicKey}
-                isLocal={isLocal}
-                userPrivateKey={state.userInputPrivateKey}
-              />
-            )}
+          <MainContent
+            workerClient={state.zkappWorkerClient}
+            zkappPublicKey={state.zkappPublicKey}
+            isLocal={isLocal}
+            userPrivateKey={state.userInputPrivateKey}
+            stateIsSetup={state.hasBeenSetup}
+          />
         </WithPadding>
       </div>
       <Footer />
