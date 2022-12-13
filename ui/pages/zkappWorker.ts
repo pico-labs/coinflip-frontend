@@ -13,6 +13,7 @@ import {
   Signature,
   Int64,
   Group,
+  Circuit,
 } from "snarkyjs";
 type Account = {
   appState?: Field[];
@@ -70,6 +71,7 @@ interface State {
   merkleKeys: Set<Field>;
   contractRootHash: string;
   channelBalance: ChannelBalance | null;
+  latestSignedChannelBalance: Signature | null;
 }
 
 const state: State = {
@@ -83,6 +85,7 @@ const state: State = {
   merkleKeys: new Set(),
   contractRootHash: "0",
   channelBalance: null,
+  latestSignedChannelBalance: null
 };
 
 // ---------------------------------------------------------------------------------------
@@ -192,6 +195,24 @@ const functions = {
         PublicKey.fromBase58(args.contractKey58)
       );
     }
+    
+    // weird hack to make sure delta balance is tracked
+    if (state.latestSignedChannelBalance) {
+      // pass
+    } else {
+      state.channelBalance!.player = PublicKey.fromBase58(args.userKey58);
+      console.debug(`Signing: Account: ${Poseidon.hash(state.channelBalance!.player!.toFields()).toString()}, Delta Balance: ${state.channelBalance!.deltaBalance.toField().toString()}, Nonce: ${state.channelBalance!.nonce} as ${PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!).toPublicKey().toBase58()}`)
+      state.latestSignedChannelBalance = Signature.create(
+        PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!),
+        [
+          Poseidon.hash(state.channelBalance!.player!.toFields()),
+          state.channelBalance!.deltaBalance.toField(),
+          state.channelBalance!.nonce
+        ]
+      );
+    }
+    // end hack
+
     if (upToDateContractAccount.appState) {
       const contractRootHash = upToDateContractAccount.appState[0].toString();
       const userRootHash = state.map?.getRoot().toString();
@@ -272,18 +293,15 @@ const functions = {
     const previousBalanceField = state.map.get(key);
     const depositAmountField = Field(args.depositAmount);
 
-    const tx = await Mina.transaction(
-      { feePayerKey: userPrivateKey, fee: MINA_FEE },
-      () => {
-        state.zkapp!.deposit(
-          userPublicKey,
-          depositAmountField,
-          previousBalanceField,
-          witness
-        );
-      }
-    );
-    console.debug("DEV - proving TX...");
+    const tx = await Mina.transaction({ feePayerKey: userPrivateKey, fee: MINA_FEE }, () => {
+      state.zkapp!.addCollateral(
+        userPublicKey,
+        depositAmountField,
+        previousBalanceField,
+        witness
+      );
+    });
+    console.debug('DEV - proving TX...')
     await tx.prove();
     console.debug("DEV - signing TX...");
     tx.sign([userPrivateKey]);
@@ -302,11 +320,17 @@ const functions = {
     state.map.set(key, newBalance); // CD: Note, previous balance probably ought not to come from args, but just be read from the map
     // TODO: JB - Make sure this is right.
     state.channelBalance!.player = userPublicKey;
-    await setMerkleValueExternally(
-      state.contractRootHash,
-      userPublicKey,
-      parseInt(newBalance.toString())
+
+    console.debug(`Signing: Account: ${Poseidon.hash(userPublicKey.toFields()).toString()}, Delta Balance: ${state.channelBalance!.deltaBalance.toField().toString()}, Nonce: ${state.channelBalance!.nonce} as ${PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!).toPublicKey().toBase58()}`)
+    state.latestSignedChannelBalance = Signature.create(
+      PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!),
+      [
+        Poseidon.hash(userPublicKey.toFields()),
+        state.channelBalance!.deltaBalance.toField(),
+        state.channelBalance!.nonce
+      ]
     );
+    await setMerkleValueExternally(state.contractRootHash, userPublicKey, parseInt(newBalance.toString()));
   },
 
   withdraw: async (args: { userPrivateKey58: string }) => {
@@ -315,17 +339,17 @@ const functions = {
     const userPublicKey = userPrivateKey.toPublicKey();
     const key = Poseidon.hash(userPublicKey.toFields());
     const witness = state.map.getWitness(key);
-    const tx3 = await Mina.transaction(
-      { feePayerKey: userPrivateKey, fee: 100_000_000 },
-      () => {
-        state.zkapp!.withdraw(
-          userPrivateKey.toPublicKey(),
-          state.map!.get(key),
-          witness
-        );
-      }
-    );
-    console.debug("DEV - proving withdraw TX...");
+    const tx3 = await Mina.transaction({ feePayerKey: userPrivateKey, fee: 100_000_000 }, () => {
+      state.zkapp!.removeCollateral(
+        userPrivateKey.toPublicKey(),
+        state.map!.get(key),
+        witness,
+        state.channelBalance!.deltaBalance,
+        state.channelBalance!.nonce,
+        state.latestSignedChannelBalance!
+      );
+    });
+    console.debug('DEV - proving withdraw TX...');
     await tx3.prove();
     console.debug("DEV - sending withdraw TX");
     await tx3.send();
@@ -334,67 +358,68 @@ const functions = {
     state.map.set(key, Field(0));
     await setMerkleValueExternally(state.contractRootHash, userPublicKey, 0);
   },
-  flipCoin: async (args: {
-    userPrivateKey58: string;
-    oracleResult: OracleResult;
-    executorPrivateKey58: string;
-  }) => {
-    console.info("Method Name: flipCoin");
-    assertIsMerkleMap(state.map);
-    const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
-    const executorPrivateKey = PrivateKey.fromBase58(args.executorPrivateKey58);
-    const userPublicKey = userPrivateKey.toPublicKey();
-    state.channelBalance!.player = userPublicKey;
-    const key = Poseidon.hash(userPublicKey.toFields());
-    const witness = state.map.getWitness(key);
-    const channelBalanceSignature = Signature.create(executorPrivateKey, [
-      Poseidon.hash(state.channelBalance!.player!.toFields()),
-      state.channelBalance!.deltaBalance.toField(),
-      state.channelBalance!.nonce,
-    ]);
-    const randomnessSignature = Signature.fromJSON(args.oracleResult.signature);
-    const callData = {
-      user: userPublicKey,
-      balance: state.map!.get(key),
-      witness: "...",
-      deltaBalance: Int64.from(0).toString(),
-      nonce: Field(0).toString(),
-      channelBalanceSig: channelBalanceSignature.toJSON(),
-      randomnessSig: randomnessSignature.toJSON(),
-      ct1: Field(args.oracleResult.cipherText[0]).toString(),
-      ct2: Field(args.oracleResult.cipherText[1]).toString(),
-      group: Group.fromJSON(args.oracleResult.publicKey)!.toJSON(),
-      executorPrivateKey: executorPrivateKey.toBase58(),
-    };
-    console.info(`Flipping with: ${JSON.stringify(callData)}`);
-    let resp: [Int64, Field[]] = [Int64.from(0), [Field(0)]];
-    const tx = await Mina.transaction(
-      { feePayerKey: userPrivateKey, fee: 100_000_000 },
-      () => {
+  flipCoin: async (
+    args: { 
+      userPrivateKey58: string,
+      oracleResult: OracleResult,
+      executorPrivateKey58: string
+    }) => {
+      console.info("Method Name: flipCoin");
+      assertIsMerkleMap(state.map);
+      const userPrivateKey = PrivateKey.fromBase58(args.userPrivateKey58);
+      const executorPrivateKey = PrivateKey.fromBase58(args.executorPrivateKey58);
+      const userPublicKey = userPrivateKey.toPublicKey();
+      state.channelBalance!.player = userPublicKey;
+      const key = Poseidon.hash(userPublicKey.toFields());
+      const witness = state.map.getWitness(key);
+      const randomnessSignature = Signature.fromJSON(args.oracleResult.signature);
+      const callData = {
+        user: userPublicKey,
+        balance: state.map!.get(key),
+        witness: '...',
+        deltaBalance: state.channelBalance!.deltaBalance.toString(),
+        nonce: state.channelBalance!.nonce.toString(),
+        channelBalanceSig: state.latestSignedChannelBalance!.toJSON(),
+        randomnessSig: randomnessSignature.toJSON(),
+        ct1: Field(args.oracleResult.cipherText[0]).toString(),
+        ct2: Field(args.oracleResult.cipherText[1]).toString(),
+        group: Group.fromJSON(args.oracleResult.publicKey)!.toJSON(),
+        executorPrivateKey: executorPrivateKey.toBase58()
+      }
+      console.info(`Flipping with: ${JSON.stringify(callData)}`);
+      let resp: [Int64, Field] = [Int64.from(0), Field(0)];
+      Circuit.runAndCheck(() => {
         resp = state.zkapp!.flipCoin(
           userPublicKey,
           state.map!.get(key),
           witness,
-          Int64.from(0),
-          Field(0),
-          channelBalanceSignature,
+          state.channelBalance!.deltaBalance,
+          state.channelBalance!.nonce,
+          state.latestSignedChannelBalance!,
           randomnessSignature,
           Field(args.oracleResult.cipherText[0]),
           Field(args.oracleResult.cipherText[1]),
           Group.fromJSON(args.oracleResult.publicKey)!,
           executorPrivateKey
         );
-      }
-    );
-    console.debug("DEV - proving withdraw TX...");
-    await tx.prove();
-    console.debug("DEV - sending withdraw TX");
-    await tx.send();
-    console.debug(
-      resp[0].toString(),
-      resp[1].map((x) => x.toString())
-    );
-  },
+      });
+      console.log(`Winnings: ${resp[0].toString()}, Random Number: ${resp[1].toString()}`);
+      state.channelBalance!.deltaBalance = state.channelBalance!.deltaBalance.add(Int64.from(resp[0]));
+      state.channelBalance!.nonce = state.channelBalance!.nonce.add(1);
+      console.info(`New Channel Delta Balance: ${state.channelBalance!.deltaBalance.toString()}`);
+      console.info(`New Channel Nonce: ${state.channelBalance!.nonce.toString()}`);
+
+      // Setting the new channel balance based on the outcome of the flip.  Next flip will use this signature as input
+      console.debug(`Signing: Account: ${Poseidon.hash(userPublicKey.toFields()).toString()}, Delta Balance: ${state.channelBalance!.deltaBalance.toField().toString()}, Nonce: ${state.channelBalance!.nonce} as ${PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!).toPublicKey().toBase58()}`)
+      state.latestSignedChannelBalance = Signature.create(
+        PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!),
+        [
+          Poseidon.hash(userPublicKey.toFields()),
+          state.channelBalance!.deltaBalance.toField(),
+          state.channelBalance!.nonce
+        ]
+      );
+    },
   // TODO: JB - Delete
   // resetContract: async (args: {publicKey58: string}): Promise<string> => {
   //   const publicKey = PublicKey.fromBase58(args.publicKey58);
