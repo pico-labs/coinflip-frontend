@@ -97,9 +97,12 @@ const functions = {
   setActiveInstanceToLocal: async (_args: {}) => {
     const Local = Mina.LocalBlockchain({ proofsEnabled: true });
     Mina.setActiveInstance(Local);
+
     state.testAccounts = Local.testAccounts;
     state.isLocal = true;
-    state.localAppPrivateKey = PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!) || PrivateKey.random();
+    // @qcomps - another change I made
+    const maybePrivateKey58 = process.env.EXECUTOR_PRIVATE_KEY;
+    state.localAppPrivateKey = maybePrivateKey58 ? PrivateKey.fromBase58(maybePrivateKey58) : PrivateKey.random();
   },
   loadContract: async (_args: {}) => {
     const { Executor } = await import("coinflip-executor-contract");

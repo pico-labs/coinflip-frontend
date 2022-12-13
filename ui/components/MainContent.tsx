@@ -1,10 +1,12 @@
+import * as styles from './MainContent.module.css'
 import * as React from "react";
 import { PrivateKey, PublicKey} from "snarkyjs";
+import {Button, Card, Loading, Spacer, Text} from '@nextui-org/react';
 import ZkappWorkerClient from "../pages/zkappWorkerClient";
 import {clearState} from "../utils/datasource";
 import { OracleDataSource } from "../utils/OracleDataSource";
 import {rootHashToUiInfo, UiInfo} from '../utils/ui-formatting';
-import { Balance } from "./AccountInfo";
+import { Balance } from "./Balance";
 interface Props {
   workerClient: ZkappWorkerClient;
   zkappPublicKey: PublicKey;
@@ -17,7 +19,8 @@ interface State {
   userBalance?: string;
   awaiting: boolean;
   appState: UiInfo | undefined;
-  userState: UiInfo | undefined
+  userState: UiInfo | undefined;
+  awaitingInitialLoad: boolean;
 }
 
 export class MainContent extends React.Component<Props, State> {
@@ -28,12 +31,15 @@ export class MainContent extends React.Component<Props, State> {
       userBalance: undefined,
       awaiting: false,
       appState: undefined,
-      userState: undefined
+      userState: undefined,
+      awaitingInitialLoad: true
     };
   }
 
   public async componentDidMount() {
-    this.refreshBalances();
+    // TODO: JB
+    // - I restored await in the merge @qcomps
+    await this.refreshBalances();
     await this.loadContractAndExternalStates();
     const oracleResult = await OracleDataSource.get(this.props.zkappPublicKey.toBase58());
     console.info(
@@ -41,6 +47,11 @@ export class MainContent extends React.Component<Props, State> {
         oracleResult
       )}`
     );
+    this.updateAwaitingInitialLoad();
+  }
+
+  private updateAwaitingInitialLoad() {
+    this.setState({awaitingInitialLoad: false});
   }
 
   private refreshBalances = async () => {
@@ -121,31 +132,53 @@ export class MainContent extends React.Component<Props, State> {
   };
 
   private loadWrapper = async (e: any) => {
-    e.stopPropagation();
+    console.log(e);
+    e?.stopPropagation && e?.stopPropagation();
+
     await this.loadContractAndExternalStates();
   }
 
   render() {
+    const {awaitingInitialLoad} = this.state;
+    if (awaitingInitialLoad) {
+      return (
+        <div>
+          <Loading size='lg'/>
+        </div>
+      );
+    }
+
     return (
       <div>
-        <hr />
-        <button onClick={this.refreshBalances}>Refresh balances</button>
-        <button onClick={this.handleDeposit} disabled={this.state.awaiting}>
-          Deposit 1000
-        </button>
-        <button onClick={this.handleWithdraw} disabled={this.state.awaiting}>
-          Withdraw Entire balance
-        </button>
-        <button onClick={this.loadWrapper}>
-          Refresh Merkle States
-        </button>
-        <button onClick={this.handleFlipCoin}>
-          Flip Coin
-        </button>
-        <button onClick={this.clearExternalData}>
-          DELETE External State (be very careful!)
-        </button>
-        <hr />
+
+
+        <div
+          // @ts-ignore
+          className={styles['buttons-container']}
+        >
+          <Button.Group color="success" title={"Flip the coin"} ghost>
+            <Button disabled={this.state.awaiting} onClick={this.handleFlipCoin}>Flip Coin</Button>
+          </Button.Group>
+          <Button.Group color="primary" ghost>
+            <Button onClick={this.handleDeposit} disabled={this.state.awaiting}>
+              Deposit 1000
+            </Button>
+            <Button onClick={this.handleWithdraw} disabled={this.state.awaiting}>
+              Withdraw Entire balance
+            </Button>
+          </Button.Group>
+            <Button.Group color="secondary" ghost>
+              <Button onClick={this.refreshBalances}>Refresh balances</Button>
+              <Button onClick={this.loadWrapper}>Refresh Merkle States</Button>
+            </Button.Group>
+          <Button.Group color="warning" ghost>
+            <Button onClick={this.clearExternalData} disabled={this.state.awaiting}>
+              DELETE External State (be very careful!)
+            </Button>
+          </Button.Group>
+        </div>
+        <Spacer/>
+        <Text h3>Account Balances</Text>
         {this.state.zkAppBalance ? (
           <Balance
             balance={this.state.zkAppBalance}
@@ -154,6 +187,7 @@ export class MainContent extends React.Component<Props, State> {
         ) : (
           <div>Loading ZK App Balance...</div>
         )}
+        <Spacer/>
         {this.state.userBalance ? (
           <Balance
             balance={this.state.userBalance}
@@ -162,8 +196,8 @@ export class MainContent extends React.Component<Props, State> {
         ) : (
           <div>Loading user account...</div>
         )}
-        <hr />
-        <h2>App and local state</h2>
+        <Spacer/>
+        <Text h3>ZK App (on-chain) and Local (off-chain) states</Text>
         {this.state.appState && <MerkleStateUi
            name={"ZK App State (on-chain)"}
            rootHash={this.state.appState.rootHash}
@@ -171,6 +205,7 @@ export class MainContent extends React.Component<Props, State> {
            merkleKey={this.state.appState.merkleKey}
            merkleValue={this.state.appState.merkleValue}
         />}
+        <Spacer/>
         {this.state.userState && <MerkleStateUi
           name={"Local State (off-chain)"}
           rootHash={this.state.userState.rootHash}
@@ -193,29 +228,26 @@ interface MerkleStateUiProps {
   merkleValue?: string;
 }
 function MerkleStateUi(props: MerkleStateUiProps) {
-  let inner = <div>loading...</div>;
+  let inner = <Loading size={'lg'}/>
   if (props) {
     inner = (
-      <div>
-        <ul>
-          <li>Root Hash: {props.rootHash}</li>
-          <li>Public Key: {props.publicKey.toBase58()}</li>
-          <li>Merkle Key and Value
-            <ul>
-              <li>Key: {props.merkleKey}</li>
-              <li>Value: {props.merkleValue}</li>
-            </ul>
-          </li>
-        </ul>
-      </div>
+      <Card>
+        <Card.Header><strong>{props.name}</strong></Card.Header>
+        <Card.Body>
+          <div>Merkle Root Hash: {props.rootHash}</div>
+          <div>Merkle Key: {props.merkleKey}</div>
+          <div>Merkle Value: {props.merkleValue}</div>
+        </Card.Body>
+        <Card.Footer>
+          <div>Public Key: {props.publicKey.toBase58()}</div>
+        </Card.Footer>
+      </Card>
     )
   }
 
   return (
     <div>
-      <h3>{props.name}</h3>
       {inner}
-      <hr/>
     </div>
   )
-};
+}
