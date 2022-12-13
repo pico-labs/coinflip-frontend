@@ -1,17 +1,32 @@
 import * as styles from "./MainContent.module.css";
 import * as React from "react";
 import { PrivateKey, PublicKey } from "snarkyjs";
-import { Button, Card, Loading, Spacer, Text } from "@nextui-org/react";
+import {
+  Button,
+  ButtonGroupProps,
+  Card,
+  Loading,
+  Spacer,
+  Text,
+} from "@nextui-org/react";
 import ZkappWorkerClient from "../pages/zkappWorkerClient";
 import { clearState } from "../utils/datasource";
 import { OracleDataSource } from "../utils/OracleDataSource";
 import { rootHashToUiInfo, UiInfo } from "../utils/ui-formatting";
 import { Balance } from "./Balance";
 interface Props {
+  workerClient: ZkappWorkerClient | null;
+  zkappPublicKey: PublicKey | null;
+  isLocal: boolean;
+  userPrivateKey?: PrivateKey;
+  stateIsSetup: boolean;
+}
+
+interface SetupProps extends Props {
   workerClient: ZkappWorkerClient;
   zkappPublicKey: PublicKey;
-  isLocal: boolean;
   userPrivateKey: PrivateKey;
+  stateIsSetup: true;
 }
 
 interface State {
@@ -36,12 +51,12 @@ export class MainContent extends React.Component<Props, State> {
     };
   }
 
-  public async componentDidMount() {
-    // TODO: JB
-    // - I restored await in the merge @qcomps
-    await this.refreshBalances();
-    await this.loadContractAndExternalStates();
-    this.updateAwaitingInitialLoad();
+  async componentDidUpdate(_prevProps: Props, _prevState: State) {
+    if (this.props.stateIsSetup) {
+      await this.refreshBalances();
+      await this.loadContractAndExternalStates();
+      this.updateAwaitingInitialLoad();
+    }
   }
 
   private updateAwaitingInitialLoad() {
@@ -49,53 +64,65 @@ export class MainContent extends React.Component<Props, State> {
   }
 
   private refreshBalances = async () => {
-    const { zkappPublicKey, userPrivateKey } = this.props;
-    const [zkAppBalance, userBalance] =
-      await this.props.workerClient.loadBalances([
-        zkappPublicKey,
-        userPrivateKey.toPublicKey(),
-      ]);
-    this.setState({
-      zkAppBalance,
-      userBalance,
-    });
+    if (canBeRun(this.props)) {
+      assertStateIsSetup(this.props);
+
+      const { zkappPublicKey, userPrivateKey } = this.props;
+      const [zkAppBalance, userBalance] =
+        await this.props.workerClient.loadBalances([
+          zkappPublicKey,
+          userPrivateKey.toPublicKey(),
+        ]);
+      this.setState({
+        zkAppBalance,
+        userBalance,
+      });
+    }
   };
 
   private loadContractAndExternalStates = async (e?: any) => {
     this.forceUpdate();
-    const { contractRoot, userRoot } =
-      await this.props.workerClient.loadAccountRootHashes(
-        this.props.zkappPublicKey,
+    if (canBeRun(this.props)) {
+      assertStateIsSetup(this.props);
+
+      const { contractRoot, userRoot } =
+        await this.props.workerClient.loadAccountRootHashes(
+          this.props.zkappPublicKey,
+          this.props.userPrivateKey.toPublicKey()
+        );
+      const appState = await rootHashToUiInfo(
+        contractRoot,
         this.props.userPrivateKey.toPublicKey()
       );
-    const appState = await rootHashToUiInfo(
-      contractRoot,
-      this.props.userPrivateKey.toPublicKey()
-    );
-    const userState = await rootHashToUiInfo(
-      userRoot,
-      this.props.userPrivateKey.toPublicKey()
-    );
-    console.log(
-      `loadContractAndExternalStates - app state balance: ${appState.merkleValue}`
-    );
-    console.log(
-      `loadContractAndExternalStates - local state balance: ${userState.merkleValue}`
-    );
-    this.forceUpdate();
-    this.setState({ appState, userState });
+      const userState = await rootHashToUiInfo(
+        userRoot,
+        this.props.userPrivateKey.toPublicKey()
+      );
+      console.log(
+        `loadContractAndExternalStates - app state balance: ${appState.merkleValue}`
+      );
+      console.log(
+        `loadContractAndExternalStates - local state balance: ${userState.merkleValue}`
+      );
+      this.forceUpdate();
+      this.setState({ appState, userState });
+    }
   };
 
   private handleDeposit = async () => {
     this.setState({ awaiting: true });
-    try {
-      await this.props.workerClient.deposit(1000, this.props.userPrivateKey);
-      await this.refreshBalances();
-      await this.loadContractAndExternalStates();
-    } catch (err) {
-      throw err;
-    } finally {
-      this.setState({ awaiting: false });
+
+    if (canBeRun(this.props)) {
+      assertStateIsSetup(this.props);
+      try {
+        await this.props.workerClient.deposit(1000, this.props.userPrivateKey);
+        await this.refreshBalances();
+        await this.loadContractAndExternalStates();
+      } catch (err) {
+        throw err;
+      } finally {
+        this.setState({ awaiting: false });
+      }
     }
   };
 
@@ -103,37 +130,43 @@ export class MainContent extends React.Component<Props, State> {
     this.forceUpdate();
     this.setState({ awaiting: true });
 
-    try {
-      await this.props.workerClient.withdraw(this.props.userPrivateKey);
-      await this.refreshBalances();
-      await this.loadContractAndExternalStates();
-    } catch (err) {
-      throw err;
-    } finally {
-      this.setState({ awaiting: false });
+    if (canBeRun(this.props)) {
+      assertStateIsSetup(this.props);
+      try {
+        await this.props.workerClient.withdraw(this.props.userPrivateKey);
+        await this.refreshBalances();
+        await this.loadContractAndExternalStates();
+      } catch (err) {
+        throw err;
+      } finally {
+        this.setState({ awaiting: false });
+      }
     }
   };
 
   private handleFlipCoin = async () => {
     console.log(`method name: handleFlipCoin`);
-    const { userPrivateKey, zkappPublicKey } = this.props;
+    if (canBeRun(this.props)) {
+      assertStateIsSetup(this.props);
 
-    try {
-      const oracleResult = await OracleDataSource.get(
-        zkappPublicKey.toBase58()
-      );
-      console.info(
-        `logging the oracleResult from MainContent.tsx; here it is: ${JSON.stringify(
-          oracleResult
-        )}`
-      );
-      await this.props.workerClient.flipCoin(
-        userPrivateKey,
-        oracleResult!,
-        PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!)
-      );
-    } catch (err) {
-      throw err;
+      const { userPrivateKey, zkappPublicKey } = this.props;
+      try {
+        const oracleResult = await OracleDataSource.get(
+          zkappPublicKey.toBase58()
+        );
+        console.info(
+          `logging the oracleResult from MainContent.tsx; here it is: ${JSON.stringify(
+            oracleResult
+          )}`
+        );
+        await this.props.workerClient.flipCoin(
+          userPrivateKey,
+          oracleResult!,
+          PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!)
+        );
+      } catch (err) {
+        throw err;
+      }
     }
   };
 
@@ -149,15 +182,8 @@ export class MainContent extends React.Component<Props, State> {
   };
 
   render() {
-    const { awaitingInitialLoad } = this.state;
-    if (awaitingInitialLoad) {
-      return (
-        <div>
-          <Loading size="lg" />
-        </div>
-      );
-    }
-
+    const buttonsAreLoading = !this.props.stateIsSetup;
+    const {awaiting} = this.state;
     return (
       <div>
         <div
@@ -165,35 +191,48 @@ export class MainContent extends React.Component<Props, State> {
           className={styles["buttons-container"]}
         >
           <Button.Group color="success" title={"Flip the coin"} ghost>
-            <Button
-              disabled={this.state.awaiting}
+            <LoadableButton
+              disabled={awaiting}
               onClick={this.handleFlipCoin}
-            >
-              Flip Coin
-            </Button>
+              text={"Flip Coin"}
+              loading={buttonsAreLoading || awaiting}
+            />
           </Button.Group>
           <Button.Group color="primary" ghost>
-            <Button onClick={this.handleDeposit} disabled={this.state.awaiting}>
-              Deposit 1000
-            </Button>
-            <Button
+            <LoadableButton
+              onClick={this.handleDeposit}
+              disabled={awaiting}
+              text={"Deposit 1000"}
+              loading={buttonsAreLoading || awaiting}
+            />
+            <LoadableButton
               onClick={this.handleWithdraw}
-              disabled={this.state.awaiting}
-            >
-              Withdraw Entire balance
-            </Button>
+              disabled={awaiting}
+              text={"Withdraw Entire balance"}
+              loading={buttonsAreLoading || awaiting}
+            />
           </Button.Group>
           <Button.Group color="secondary" ghost>
-            <Button onClick={this.refreshBalances}>Refresh balances</Button>
-            <Button onClick={this.loadWrapper}>Refresh Merkle States</Button>
+            <LoadableButton
+              onClick={this.refreshBalances}
+              disabled={this.state.awaiting}
+              text={"Refresh balances"}
+              loading={buttonsAreLoading}
+            />
+            <LoadableButton
+              onClick={this.loadWrapper}
+              text={"Refresh Merkle States"}
+              disabled={this.state.awaiting}
+              loading={buttonsAreLoading}
+            />
           </Button.Group>
           <Button.Group color="warning" ghost>
-            <Button
+            <LoadableButton
               onClick={this.clearExternalData}
               disabled={this.state.awaiting}
-            >
-              DELETE External State (be very careful!)
-            </Button>
+              text={"DELETE External State (be very careful!)"}
+              loading={buttonsAreLoading}
+            />
           </Button.Group>
         </div>
         <Spacer />
@@ -204,7 +243,7 @@ export class MainContent extends React.Component<Props, State> {
             label="ZK App Account balance"
           />
         ) : (
-          <div>Loading ZK App Balance...</div>
+          <div>Loading ZK App Balance...<Loading size={'md'}/></div>
         )}
         <Spacer />
         {this.state.userBalance ? (
@@ -213,29 +252,26 @@ export class MainContent extends React.Component<Props, State> {
             label="User account balance"
           />
         ) : (
-          <div>Loading user account...</div>
+          <div>Loading user account...<Loading size={'md'}/></div>
         )}
         <Spacer />
         <Text h3>ZK App (on-chain) and Local (off-chain) states</Text>
-        {this.state.appState && (
-          <MerkleStateUi
-            name={"ZK App State (on-chain)"}
-            rootHash={this.state.appState.rootHash}
-            publicKey={this.state.appState.publicKey}
-            merkleKey={this.state.appState.merkleKey}
-            merkleValue={this.state.appState.merkleValue}
-          />
-        )}
+        <MerkleStateUi
+          name={"ZK App State (on-chain)"}
+          rootHash={this.state.appState?.rootHash}
+          publicKey={this.state.appState?.publicKey}
+          merkleKey={this.state.appState?.merkleKey}
+          merkleValue={this.state.appState?.merkleValue}
+        />
         <Spacer />
-        {this.state.userState && (
-          <MerkleStateUi
-            name={"Local State (off-chain)"}
-            rootHash={this.state.userState.rootHash}
-            publicKey={this.state.userState.publicKey}
-            merkleKey={this.state.userState.merkleKey}
-            merkleValue={this.state.userState.merkleValue}
-          />
-        )}
+        <MerkleStateUi
+          name={"Local State (off-chain)"}
+          rootHash={this.state.userState?.rootHash}
+          publicKey={this.state.userState?.publicKey}
+          merkleKey={this.state.userState?.merkleKey}
+          merkleValue={this.state.userState?.merkleValue}
+          loading={buttonsAreLoading}
+        />
       </div>
     );
   }
@@ -243,14 +279,17 @@ export class MainContent extends React.Component<Props, State> {
 
 interface MerkleStateUiProps {
   name: string;
-  rootHash: string;
-  publicKey: PublicKey;
-  merkleKey: string;
+  rootHash?: string;
+  publicKey?: PublicKey;
+  merkleKey?: string;
+  // this one can actually be null on fetch; the others can only be null when loading.
   merkleValue?: string;
+  loading?: boolean;
 }
 function MerkleStateUi(props: MerkleStateUiProps) {
-  let inner = <Loading size={"lg"} />;
-  if (props) {
+  let inner;
+  const loading = props.loading || !props.rootHash
+  if (!loading) {
     inner = (
       <Card>
         <Card.Header>
@@ -262,11 +301,54 @@ function MerkleStateUi(props: MerkleStateUiProps) {
           <div>Merkle Value: {props.merkleValue}</div>
         </Card.Body>
         <Card.Footer>
-          <div>Public Key: {props.publicKey.toBase58()}</div>
+          <div>Public Key: {props.publicKey?.toBase58()}</div>
         </Card.Footer>
       </Card>
     );
+  } else {
+    inner = (
+      <Card>
+        <Card.Header>
+          <strong>{props.name}</strong>
+        </Card.Header>
+        <Card.Body><Loading size={'lg'}/></Card.Body>
+        <Card.Footer/>
+      </Card>
+    )
   }
 
   return <div>{inner}</div>;
+}
+
+function canBeRun(props: Props): boolean {
+  const { stateIsSetup, zkappPublicKey, userPrivateKey, workerClient } = props;
+  return stateIsSetup && !!zkappPublicKey && !!userPrivateKey && !!workerClient;
+}
+
+function assertStateIsSetup(value: unknown): asserts value is SetupProps {
+  const castValue = value as SetupProps;
+  const anyAreInvalid = [
+    castValue.stateIsSetup,
+    castValue.userPrivateKey,
+    castValue.workerClient,
+    castValue.zkappPublicKey,
+  ].some((value) => value === null || value === undefined);
+  if (anyAreInvalid) {
+    throw "invalid setup state!";
+  }
+}
+
+interface LoadableButtonProps {
+  disabled: boolean;
+  text: string;
+  onClick: (e?: any) => void;
+  loading: boolean;
+}
+function LoadableButton(props: LoadableButtonProps): JSX.Element {
+  const { loading, text, disabled } = props;
+  return (
+    <Button disabled={disabled || loading} onClick={props.onClick}>
+      {loading ? <Loading size={"md"} /> : text}
+    </Button>
+  );
 }
