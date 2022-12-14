@@ -210,7 +210,7 @@ export class MainContent extends React.Component<Props, State> {
             <LoadableButton
               onClick={this.handleWithdraw}
               disabled={awaiting}
-              text={"Withdraw Entire balance"}
+              text={"Withdraw collateral + winnings"}
               loading={buttonsAreLoading || awaiting}
             />
           </Button.Group>
