@@ -100,13 +100,6 @@ function deserializeMap(
   return deserialized;
 }
 
-async function clearState() {
-  const url = `${BASE_URL}/flushdb/`;
-  console.debug(`DEV - setting state...`);
-  await fetch(url, { ...HEADERS, method: "POST" });
-  console.debug(`DEV - Flushed DB`);
-}
-
 function generateHeaders() {
   const value = [
     "Bearer",
@@ -134,7 +127,6 @@ function computeMerkleKeyAndValue(
 export {
   getMerkleValuesExternally,
   setMerkleValueExternally,
-  clearState,
   deserializeMap,
   serializeMap,
   computeMerkleKeyAndValue,

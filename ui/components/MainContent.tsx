@@ -12,7 +12,6 @@ import {
   Text,
 } from "@nextui-org/react";
 import ZkappWorkerClient from "../pages/zkappWorkerClient";
-import { clearState } from "../utils/datasource";
 import { OracleDataSource } from "../utils/OracleDataSource";
 import { rootHashToUiInfo, UiInfo } from "../utils/ui-formatting";
 import { Balance } from "./Balance";
@@ -179,10 +178,6 @@ export class MainContent extends React.Component<Props, State> {
         throw err;
       }
     }
-  };
-
-  private clearExternalData = async () => {
-    await clearState();
   };
 
   private loadWrapper = async (e: any) => {
