@@ -316,7 +316,7 @@ function MerkleStateUi(props: MerkleStateUiProps) {
           <div>Your Account Hash: {props.merkleKey?.slice(0, 10)}...</div>
           <b>
             <div>Your Collateral: {props.merkleValue}</div>
-            {props.renderMagnitude && <div>Winnings/Losses for this session: {formattedMagnitude} millionths of a Mina</div>}
+            {props.renderMagnitude && <div>Winnings/Losses for this session: {formattedMagnitude} / 1000000000ths of a Mina</div>}
           </b>
         </Card.Body>
         <Card.Footer>
