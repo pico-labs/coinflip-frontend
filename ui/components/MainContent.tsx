@@ -323,9 +323,11 @@ function MerkleStateUi(props: MerkleStateUiProps) {
           </div>
         </Card.Header>
         <Card.Body>
-          <div>Merkle Root Hash: {props.rootHash?.slice(0,10)}...</div>
+          <div>Merkle Root Hash: {props.rootHash?.slice(0, 10)}...</div>
           <div>Your Account Hash: {props.merkleKey?.slice(0, 10)}...</div>
-          <b><div>Your Collateral: {props.merkleValue}</div></b>
+          <b>
+            <div>Your Collateral: {props.merkleValue}</div>
+          </b>
         </Card.Body>
         <Card.Footer>
           <div>Public Key: {props.publicKey?.toBase58()}</div>

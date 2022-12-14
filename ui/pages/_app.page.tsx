@@ -47,7 +47,7 @@ export default function App() {
       const zkappWorkerClient = new ZkappWorkerClient();
       console.log("Loading SnarkyJS...");
       await zkappWorkerClient.loadSnarkyJS();
-      
+
       if (shouldRun) {
         if (NETWORK === "BERKELEY" || NETWORK === "LOCAL") {
           const setupState = await setupNetwork(
