@@ -236,14 +236,6 @@ export class MainContent extends React.Component<Props, State> {
               loading={buttonsAreLoading}
             />
           </Button.Group>
-          <Button.Group color="warning" ghost>
-            <LoadableButton
-              onClick={this.clearExternalData}
-              disabled={this.state.awaiting}
-              text={"DELETE External State (be very careful!)"}
-              loading={buttonsAreLoading}
-            />
-          </Button.Group>
         </div>
         <Spacer />
         <Text h3>Mina Account Balances</Text>
@@ -331,9 +323,9 @@ function MerkleStateUi(props: MerkleStateUiProps) {
           </div>
         </Card.Header>
         <Card.Body>
-          <div>Merkle Root Hash: {props.rootHash}</div>
-          <div>Merkle Key: {props.merkleKey}</div>
-          <div>Merkle Value: {props.merkleValue}</div>
+          <div>Merkle Root Hash: {props.rootHash?.slice(0,10)}...</div>
+          <div>Your Account Hash: {props.merkleKey?.slice(0, 10)}...</div>
+          <b><div>Your Collateral: {props.merkleValue}</div></b>
         </Card.Body>
         <Card.Footer>
           <div>Public Key: {props.publicKey?.toBase58()}</div>
