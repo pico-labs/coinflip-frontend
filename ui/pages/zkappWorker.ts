@@ -101,7 +101,7 @@ const functions = {
     Mina.setActiveInstance(Berkeley);
   },
   setActiveInstanceToLocal: async (_args: {}) => {
-    const Local = Mina.LocalBlockchain({ proofsEnabled: true });
+    const Local = Mina.LocalBlockchain({ proofsEnabled: false });
     Mina.setActiveInstance(Local);
 
     state.testAccounts = Local.testAccounts;
