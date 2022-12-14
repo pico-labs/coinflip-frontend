@@ -1,6 +1,7 @@
 import { PublicKey, PrivateKey } from "snarkyjs";
 import type { OracleResult } from "../utils/OracleDataSource";
 import {
+  assertIsChannelBalance,
   assertIsFetchResult,
   assertIsLoadRootHashesResult,
   assertIsString,
@@ -13,6 +14,7 @@ import type {
   WorkerFunctions,
   FetchResult,
   LoadRootHashesResult,
+  ChannelBalance,
 } from "./zkappWorker";
 
 export default class ZkappWorkerClient {
@@ -115,17 +117,24 @@ export default class ZkappWorkerClient {
     return this._call("withdraw", args);
   }
 
-  flipCoin(
+  async flipCoin(
     userPrivateKey: PrivateKey,
     oracleResult: OracleResult,
     executorPrivateKey: PrivateKey
-  ) {
+  ): Promise<ChannelBalance> {
     const args = {
       userPrivateKey58: userPrivateKey.toBase58(),
       oracleResult,
       executorPrivateKey58: executorPrivateKey.toBase58(),
     };
-    return this._call("flipCoin", args);
+    const result = await this._call("flipCoin", args);
+    if (typeof result === "string") {
+      const jsonResult = JSON.parse(result);
+      assertIsChannelBalance(jsonResult);
+      return jsonResult;
+    } else {
+      throw "did not get a string";
+    }
   }
 
   // ---------------------------------------------------------------------------------------

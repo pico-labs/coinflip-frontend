@@ -2,7 +2,7 @@ import { networkConfig } from "../utils/constants";
 import { makeAccountUrl } from "../utils/minascan";
 import * as styles from "./MainContent.module.css";
 import * as React from "react";
-import { PrivateKey, PublicKey } from "snarkyjs";
+import {Int64, PrivateKey, PublicKey} from "snarkyjs";
 import {
   Button,
   Card,
@@ -38,6 +38,7 @@ interface State {
   appState: UiInfo | undefined;
   userState: UiInfo | undefined;
   awaitingInitialLoad: boolean;
+  magnitude: Int64 | undefined;
 }
 
 export class MainContent extends React.Component<Props, State> {
@@ -50,6 +51,7 @@ export class MainContent extends React.Component<Props, State> {
       appState: undefined,
       userState: undefined,
       awaitingInitialLoad: true,
+      magnitude: undefined
     };
   }
 
@@ -161,11 +163,18 @@ export class MainContent extends React.Component<Props, State> {
             oracleResult
           )}`
         );
-        await this.props.workerClient.flipCoin(
+        const resultFromFlipCoin = await this.props.workerClient.flipCoin(
           userPrivateKey,
           oracleResult!,
           PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!)
         );
+        // TODO: JB
+        // @ts-ignore
+        const magnitude = Int64.fromJSON(resultFromFlipCoin.deltaBalance)
+        console.info(
+          "result from flip coin: " + JSON.stringify(resultFromFlipCoin)
+        );
+        this.setState({ magnitude });
       } catch (err) {
         throw err;
       }
@@ -256,30 +265,16 @@ export class MainContent extends React.Component<Props, State> {
         )}
         <Spacer />
         <Text h3>ZK App (on-chain) and Local (off-chain) states</Text>
-        <MerkleStateUi
-          name={"ZK App State (on-chain)"}
-          rootHash={this.state.appState?.rootHash}
-          publicKey={this.state.appState?.publicKey}
-          merkleKey={this.state.appState?.merkleKey}
-          merkleValue={this.state.appState?.merkleValue}
-          rightSideHeaderContent={
-            <StyledLink
-              href={makeAccountUrl(
-                networkConfig.BERKELEY.coinflipContract.publicKey
-              )}
-            >
-              Check out the contract on minascan.io
-            </StyledLink>
-          }
+        <OnChainUiState
+          state={this.state.appState}
+          loading={buttonsAreLoading}
         />
         <Spacer />
-        <MerkleStateUi
-          name={"Local State (off-chain)"}
-          rootHash={this.state.userState?.rootHash}
-          publicKey={this.state.userState?.publicKey}
-          merkleKey={this.state.userState?.merkleKey}
-          merkleValue={this.state.userState?.merkleValue}
+        <LocalUiState
+          userState={this.state.userState}
           loading={buttonsAreLoading}
+          magnitude={this.state.magnitude}
+          renderMagnitude={true}
         />
       </div>
     );
@@ -287,6 +282,7 @@ export class MainContent extends React.Component<Props, State> {
 }
 
 interface MerkleStateUiProps {
+  magnitude?: Int64;
   name: string;
   rootHash?: string;
   publicKey?: PublicKey;
@@ -295,11 +291,13 @@ interface MerkleStateUiProps {
   merkleValue?: string;
   loading?: boolean;
   rightSideHeaderContent?: JSX.Element;
+  renderMagnitude: boolean;
 }
+
 function MerkleStateUi(props: MerkleStateUiProps) {
   let inner;
-  const loading = props.loading || !props.rootHash;
-  if (!loading) {
+  const formattedMagnitude = props.magnitude?.toString() || '0'
+  if (!props.loading) {
     inner = (
       <Card>
         <Card.Header>
@@ -314,9 +312,12 @@ function MerkleStateUi(props: MerkleStateUiProps) {
           </div>
         </Card.Header>
         <Card.Body>
-          <div>Merkle Root Hash: {props.rootHash?.slice(0,10)}...</div>
+          <div>Merkle Root Hash: {props.rootHash?.slice(0, 10)}...</div>
           <div>Your Account Hash: {props.merkleKey?.slice(0, 10)}...</div>
-          <b><div>Your Collateral: {props.merkleValue}</div></b>
+          <b>
+            <div>Your Collateral: {props.merkleValue}</div>
+            {props.renderMagnitude && <div>Winnings/Losses for this session: {formattedMagnitude} millionths of a Mina</div>}
+          </b>
         </Card.Body>
         <Card.Footer>
           <div>Public Key: {props.publicKey?.toBase58()}</div>
@@ -346,6 +347,54 @@ function MerkleStateUi(props: MerkleStateUiProps) {
   }
 
   return <div>{inner}</div>;
+}
+
+
+interface LocalUiStateProps {
+  userState: UiInfo | undefined;
+  loading: boolean;
+  magnitude?: Int64;
+  renderMagnitude: boolean;
+}
+function LocalUiState(props: LocalUiStateProps) {
+  const loading = props.loading || !props.userState?.rootHash;
+  return (
+    <MerkleStateUi
+      name={"Local State (off-chain)"}
+      rootHash={props.userState?.rootHash}
+      publicKey={props.userState?.publicKey}
+      merkleKey={props.userState?.merkleKey}
+      merkleValue={props.userState?.merkleValue}
+      loading={loading}
+      magnitude={props.magnitude}
+      renderMagnitude={props.renderMagnitude}
+    />
+  )
+}
+
+
+interface OnChainUiState {
+  state: UiInfo | undefined;
+  loading: boolean;
+}
+
+function OnChainUiState(props: OnChainUiState) {
+  return (
+    <MerkleStateUi
+      name={"ZK App State (on-chain)"}
+      rootHash={props.state?.rootHash}
+      publicKey={props.state?.publicKey}
+      merkleKey={props.state?.merkleKey}
+      merkleValue={props.state?.merkleValue}
+      loading={props.loading}
+      renderMagnitude={false}
+      rightSideHeaderContent={
+        <StyledLink href={makeAccountUrl(networkConfig.BERKELEY.coinflipContract.publicKey)}>
+          Check out the contract on minascan.io
+        </StyledLink>
+      }
+    />
+  );
 }
 
 function canBeRun(props: Props): boolean {

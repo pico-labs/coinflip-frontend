@@ -1,5 +1,6 @@
 import { MerkleMap } from "snarkyjs";
 import {
+  ChannelBalance,
   FetchError,
   FetchResult,
   FetchSuccess,
@@ -65,10 +66,24 @@ function assertIsLoadRootHashesResult(
   }
 }
 
+
+function assertIsChannelBalance(value: unknown): asserts value is ChannelBalance {
+    if (typeof  value !== 'object') {
+      throw 'expected object'
+    }
+    const cast = value as ChannelBalance;
+    if (cast.deltaBalance && cast.executor && cast.nonce) {
+      // pass
+    } else {
+      throw 'expected channel balance';
+    }
+}
+
 export {
   assertIsString,
+  assertIsChannelBalance,
   assertIsFetchResult,
   assertIsStringArray,
   assertIsMerkleMap,
   assertIsLoadRootHashesResult,
-};
+}
