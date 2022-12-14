@@ -161,10 +161,13 @@ export class MainContent extends React.Component<Props, State> {
             oracleResult
           )}`
         );
-        await this.props.workerClient.flipCoin(
+        const resultFromFlipCoin = await this.props.workerClient.flipCoin(
           userPrivateKey,
           oracleResult!,
           PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!)
+        );
+        console.info(
+          "result from flip coin: " + JSON.stringify(resultFromFlipCoin)
         );
       } catch (err) {
         throw err;
