@@ -51,8 +51,8 @@ export class MainContent extends React.Component<Props, State> {
     };
   }
 
-  async componentDidUpdate(_prevProps: Props, _prevState: State) {
-    if (this.props.stateIsSetup) {
+  async componentDidUpdate(prevProps: Props, _prevState: State) {
+    if (this.props.stateIsSetup && !prevProps.stateIsSetup) {
       await this.refreshBalances();
       await this.loadContractAndExternalStates();
       this.updateAwaitingInitialLoad();
