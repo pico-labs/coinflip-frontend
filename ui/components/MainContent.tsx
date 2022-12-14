@@ -1,8 +1,9 @@
+import { ChannelBalance } from "../pages/zkappWorker";
 import { networkConfig } from "../utils/constants";
 import { makeAccountUrl } from "../utils/minascan";
 import * as styles from "./MainContent.module.css";
 import * as React from "react";
-import { PrivateKey, PublicKey } from "snarkyjs";
+import { PrivateKey, PublicKey, UInt64 } from "snarkyjs";
 import {
   Button,
   Card,
@@ -38,6 +39,7 @@ interface State {
   appState: UiInfo | undefined;
   userState: UiInfo | undefined;
   awaitingInitialLoad: boolean;
+  magnitude: UInt64 | null;
 }
 
 export class MainContent extends React.Component<Props, State> {
@@ -50,6 +52,7 @@ export class MainContent extends React.Component<Props, State> {
       appState: undefined,
       userState: undefined,
       awaitingInitialLoad: true,
+      magnitude: null,
     };
   }
 
@@ -166,9 +169,11 @@ export class MainContent extends React.Component<Props, State> {
           oracleResult!,
           PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!)
         );
+        const magnitude = resultFromFlipCoin.deltaBalance.magnitude;
         console.info(
           "result from flip coin: " + JSON.stringify(resultFromFlipCoin)
         );
+        this.setState({ magnitude });
       } catch (err) {
         throw err;
       }
@@ -267,6 +272,7 @@ export class MainContent extends React.Component<Props, State> {
         )}
         <Spacer />
         <Text h3>ZK App (on-chain) and Local (off-chain) states</Text>
+        <Text h2>{this.state.magnitude?.toString()}</Text>
         <MerkleStateUi
           name={"ZK App State (on-chain)"}
           rootHash={this.state.appState?.rootHash}
