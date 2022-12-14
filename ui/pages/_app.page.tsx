@@ -43,12 +43,12 @@ export default function App() {
       const shouldRun =
         (!hasBeenSetup && userInputPrivateKey) ||
         (NETWORK === "LOCAL" && !hasBeenSetup);
+
+      const zkappWorkerClient = new ZkappWorkerClient();
+      console.log("Loading SnarkyJS...");
+      await zkappWorkerClient.loadSnarkyJS();
+      
       if (shouldRun) {
-        const zkappWorkerClient = new ZkappWorkerClient();
-
-        console.log("Loading SnarkyJS...");
-        await zkappWorkerClient.loadSnarkyJS();
-
         if (NETWORK === "BERKELEY" || NETWORK === "LOCAL") {
           const setupState = await setupNetwork(
             NETWORK,
@@ -93,15 +93,15 @@ export default function App() {
   let setup = (
     <div>
       {state.hasBeenSetup && <Text h3>SnarkyJS is ready!</Text>}
-      {!state.hasBeenSetup && !state.userInputPrivateKey && (
-        <div>
-          <Text h3>Please enter your private key below to load SnarkyJS</Text>
-        </div>
-      )}
       {!state.hasBeenSetup && state.userInputPrivateKey && (
         <div>
           <Text h3>Loading SnarkyJS...</Text>
           <Loading size={"lg"} />
+        </div>
+      )}
+      {!state.hasBeenSetup && !state.userInputPrivateKey && (
+        <div>
+          <Text h3>Please enter your private key below to access the game</Text>
         </div>
       )}
       {}

@@ -7,7 +7,7 @@ export function Header() {
       // @ts-ignore
       className={styles["container"]}
     >
-      <Text h2>Welcome to Mina CoinFlip</Text>
+      <Text h2>P I C O F L I P</Text>
     </div>
   );
 }

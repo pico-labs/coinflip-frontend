@@ -226,14 +226,6 @@ export class MainContent extends React.Component<Props, State> {
               loading={buttonsAreLoading}
             />
           </Button.Group>
-          <Button.Group color="warning" ghost>
-            <LoadableButton
-              onClick={this.clearExternalData}
-              disabled={this.state.awaiting}
-              text={"DELETE External State (be very careful!)"}
-              loading={buttonsAreLoading}
-            />
-          </Button.Group>
         </div>
         <Spacer />
         <Text h3>Account Balances</Text>
