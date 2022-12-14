@@ -1,12 +1,14 @@
+import { networkConfig } from "../utils/constants";
+import { makeAccountUrl } from "../utils/minascan";
 import * as styles from "./MainContent.module.css";
 import * as React from "react";
 import { PrivateKey, PublicKey } from "snarkyjs";
 import {
   Button,
-  ButtonGroupProps,
   Card,
   Loading,
   Spacer,
+  StyledLink,
   Text,
 } from "@nextui-org/react";
 import ZkappWorkerClient from "../pages/zkappWorkerClient";
@@ -202,7 +204,7 @@ export class MainContent extends React.Component<Props, State> {
             <LoadableButton
               onClick={this.handleDeposit}
               disabled={awaiting}
-              text={"Deposit 1000"}
+              text={"Deposit 0.000001 Mina"}
               loading={buttonsAreLoading || awaiting}
             />
             <LoadableButton
@@ -216,7 +218,7 @@ export class MainContent extends React.Component<Props, State> {
             <LoadableButton
               onClick={this.refreshBalances}
               disabled={this.state.awaiting}
-              text={"Refresh balances"}
+              text={"Refresh states and balances"}
               loading={buttonsAreLoading}
             />
             <LoadableButton
@@ -236,7 +238,7 @@ export class MainContent extends React.Component<Props, State> {
           </Button.Group>
         </div>
         <Spacer />
-        <Text h3>Account Balances</Text>
+        <Text h3>Mina Account Balances</Text>
         {this.state.zkAppBalance ? (
           <Balance
             balance={this.state.zkAppBalance}
@@ -268,6 +270,15 @@ export class MainContent extends React.Component<Props, State> {
           publicKey={this.state.appState?.publicKey}
           merkleKey={this.state.appState?.merkleKey}
           merkleValue={this.state.appState?.merkleValue}
+          rightSideHeaderContent={
+            <StyledLink
+              href={makeAccountUrl(
+                networkConfig.BERKELEY.coinflipContract.publicKey
+              )}
+            >
+              Check out the contract on minascan.io
+            </StyledLink>
+          }
         />
         <Spacer />
         <MerkleStateUi
@@ -291,6 +302,7 @@ interface MerkleStateUiProps {
   // this one can actually be null on fetch; the others can only be null when loading.
   merkleValue?: string;
   loading?: boolean;
+  rightSideHeaderContent?: JSX.Element;
 }
 function MerkleStateUi(props: MerkleStateUiProps) {
   let inner;
@@ -299,7 +311,15 @@ function MerkleStateUi(props: MerkleStateUiProps) {
     inner = (
       <Card>
         <Card.Header>
-          <strong>{props.name}</strong>
+          <div
+            // @ts-ignore
+            className={styles["card-header-wrapper"]}
+          >
+            <div>
+              <strong>{props.name}</strong>
+            </div>
+            <div>{props.rightSideHeaderContent}</div>
+          </div>
         </Card.Header>
         <Card.Body>
           <div>Merkle Root Hash: {props.rootHash}</div>
@@ -315,7 +335,15 @@ function MerkleStateUi(props: MerkleStateUiProps) {
     inner = (
       <Card>
         <Card.Header>
-          <strong>{props.name}</strong>
+          <div
+            // @ts-ignore
+            className={styles["card-header-wrapper"]}
+          >
+            <div>
+              <strong>{props.name}</strong>
+            </div>
+            <div>{props.rightSideHeaderContent}</div>
+          </div>
         </Card.Header>
         <Card.Body>
           <Loading size={"lg"} />

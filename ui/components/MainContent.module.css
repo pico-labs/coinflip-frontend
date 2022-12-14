@@ -3,3 +3,10 @@
   flex-direction: row;
   justify-content: space-between;
 }
+
+.card-header-wrapper {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+}
