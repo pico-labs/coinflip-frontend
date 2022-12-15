@@ -2,7 +2,7 @@ const networkConfig = {
   currentNetwork: process.env.APP_NETWORK,
   BERKELEY: {
     coinflipContract: {
-      publicKey: 'B62qmgSt4XncvYid6w7rFVtBs1Pj295sw62ARfpq4zJ6td9hrLmJzmk',
+      publicKey: 'B62qjroK2cjbPeLoPnVaX6EoHPEMcWP7pfhuG4rVXgzA9WRiC7tKGGZ',
       datastoreKey: 'berkeley-state',
     },
     oracleUrl:
