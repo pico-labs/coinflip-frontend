@@ -142,7 +142,7 @@ export class MainContent extends React.Component<Props, State> {
       } catch (err) {
         throw err;
       } finally {
-        this.setState({ awaiting: false });
+        this.setState({ awaiting: false, magnitude: Int64.from(0) });
       }
     }
   };
