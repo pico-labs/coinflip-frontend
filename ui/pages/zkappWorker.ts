@@ -387,6 +387,16 @@ const functions = {
     // from CD: after a successful withdrawal, we set to 0.
     state.map.set(key, Field(0));
     await setMerkleValueExternally(state.contractRootHash, userPublicKey, 0);
+    state.channelBalance!.deltaBalance = Int64.from(0);
+    state.channelBalance!.nonce = Field(0);
+    state.latestSignedChannelBalance = Signature.create(
+      PrivateKey.fromBase58(process.env.EXECUTOR_PRIVATE_KEY!),
+      [
+        Poseidon.hash(userPublicKey.toFields()),
+        state.channelBalance!.deltaBalance.toField(),
+        state.channelBalance!.nonce,
+      ]
+    );
   },
   flipCoin: async (args: {
     userPrivateKey58: string;

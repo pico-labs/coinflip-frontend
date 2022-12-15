@@ -1,5 +1,5 @@
 import { networkConfig } from "../utils/constants";
-import { makeAccountUrl } from "../utils/minascan";
+import { makeAccountUrl } from "../utils/minaexplorer";
 import * as styles from "./MainContent.module.css";
 import * as React from "react";
 import {Int64, PrivateKey, PublicKey} from "snarkyjs";
@@ -200,7 +200,7 @@ export class MainContent extends React.Component<Props, State> {
             <LoadableButton
               disabled={awaiting}
               onClick={this.handleFlipCoin}
-              text={"Flip Coin"}
+              text={"Flip Coin (costs 5 tokens)"}
               loading={buttonsAreLoading || awaiting}
             />
           </Button.Group>
@@ -208,7 +208,7 @@ export class MainContent extends React.Component<Props, State> {
             <LoadableButton
               onClick={this.handleDeposit}
               disabled={awaiting}
-              text={"Deposit 0.000001 Mina"}
+              text={"Deposit 1000 Tokens Collateral"}
               loading={buttonsAreLoading || awaiting}
             />
             <LoadableButton
@@ -234,11 +234,23 @@ export class MainContent extends React.Component<Props, State> {
           </Button.Group>
         </div>
         <Spacer />
+        <Text h3>ZK App (on-chain) and Local (off-chain) states</Text>
+        <LocalUiState
+          userState={this.state.userState}
+          loading={buttonsAreLoading}
+          magnitude={this.state.magnitude}
+          renderMagnitude={true}
+        />
+        <OnChainUiState
+          state={this.state.appState}
+          loading={buttonsAreLoading}
+        />
+        <Spacer />
         <Text h3>Mina Account Balances</Text>
         {this.state.zkAppBalance ? (
           <Balance
             balance={this.state.zkAppBalance}
-            label="ZK App Account balance"
+            label="ZK App Mina balance"
           />
         ) : (
           <div>
@@ -250,7 +262,7 @@ export class MainContent extends React.Component<Props, State> {
         {this.state.userBalance ? (
           <Balance
             balance={this.state.userBalance}
-            label="User account balance"
+            label="User Mina balance"
           />
         ) : (
           <div>
@@ -259,18 +271,6 @@ export class MainContent extends React.Component<Props, State> {
           </div>
         )}
         <Spacer />
-        <Text h3>ZK App (on-chain) and Local (off-chain) states</Text>
-        <OnChainUiState
-          state={this.state.appState}
-          loading={buttonsAreLoading}
-        />
-        <Spacer />
-        <LocalUiState
-          userState={this.state.userState}
-          loading={buttonsAreLoading}
-          magnitude={this.state.magnitude}
-          renderMagnitude={true}
-        />
       </div>
     );
   }
@@ -311,7 +311,7 @@ function MerkleStateUi(props: MerkleStateUiProps) {
           <div>Your Account Hash: {props.merkleKey?.slice(0, 10)}...</div>
           <b>
             <div>Your Collateral: {props.merkleValue}</div>
-            {props.renderMagnitude && <div>Winnings/Losses for this session: {formattedMagnitude} millionths of a Mina</div>}
+            {props.renderMagnitude && <div>Winnings/Losses for this session: {formattedMagnitude} tokens</div>}
           </b>
         </Card.Body>
         <Card.Footer>
@@ -385,7 +385,7 @@ function OnChainUiState(props: OnChainUiState) {
       renderMagnitude={false}
       rightSideHeaderContent={
         <StyledLink href={makeAccountUrl(networkConfig.BERKELEY.coinflipContract.publicKey)}>
-          Check out the contract on minascan.io
+          Check out the contract on Mina Explorer
         </StyledLink>
       }
     />
