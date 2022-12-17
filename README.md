@@ -67,7 +67,7 @@ and also shows winnings and losses.
 
 ### Here's how to flip a coin, see your results, and withdraw.
 
-- Entire private key at the top and wait for everything to load
+- Enter private key at the top and wait for everything to load
 - Once everything is loaded, click the blue "Deposit" button
   - You will see your "Local State" card at the bottom show an updated collateral value very quickly
   - You will have to wait for your transaction to be mined before you can see the updated contract balance, but in the meantime, you can click the "Refresh states and balances" button every so often until your balance is updated.
